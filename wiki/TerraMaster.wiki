@@ -1,7 +1,7 @@
 #summary A GUI for managing FlightGear scenery collections.
 
-Building TerraMaster.
+Building.
 
-Running TerraMaster.
+Running.
 
 Attributions.
