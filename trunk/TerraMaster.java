@@ -23,6 +23,8 @@ public class TerraMaster {
   static final int	TERRAIN = 0,
 			OBJECTS = 1;
 
+  public static TileName tilenameManager;
+
 
   static void buildScnMap(File f, Map<String, TileData> map, int type) {
     TileData	t;
@@ -107,8 +109,8 @@ public class TerraMaster {
 
       ArrayList<MapPoly>	poly = new ArrayList<MapPoly>();
       String			filename = "gshhs_l.b";
-      //String			filename = "../geo/gshhs/wdb_rivers_l.b";
 
+System.out.println("worker.doInBackground()");
       try {
 	GshhsHeader	h = new GshhsHeader();
 	DataInput	s = new DataInputStream(new
@@ -162,6 +164,8 @@ public class TerraMaster {
   }
 
   public static void main(String args[]) {
+
+    tilenameManager = new TileName();
 
     SwingUtilities.invokeLater(new Runnable() {
 	public void run() {
