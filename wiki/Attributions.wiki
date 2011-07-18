@@ -1,0 +1,5 @@
+#summary Attributions.
+
+TerraMaster uses shoreline data from [http://www.ngdc.noaa.gov/mgg/shorelines/gshhs.html GSHHS - A Global Self-consistent, Hierarchical, High-resolution Shoreline Database] version 2.1.1.
+
+GSHHS 2.1.1 is distributed under the GNU Public License.
