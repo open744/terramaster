@@ -2,20 +2,25 @@
 // lat,lon and "e000s00" formats
 
 import java.awt.geom.Point2D;
+import java.util.*;
 import java.util.regex.*;
 
-public class TileName implements Comparable<TileName> 
+public class TileName implements Comparable<TileName>
 {
   private int lat, lon;
   private String name;
-  private String [][]table = new String[360][180];
 
-  // probably not needed
+  private Hashtable<String, TileName> tilenameMap;
+
+  // creates a hashtable of all possible 1x1 tiles in the world
   public TileName()
   {
+    tilenameMap = new Hashtable<String, TileName>();
+
     for (int x = -180; x < 180; ++x) {
       for (int y = -90; y < 90; ++y) {
-	table[x][y] = computeTileName(y, x);
+	TileName t = new TileName(y, x);
+	tilenameMap.put(t.getName(), t);
       }
     }
   }
@@ -41,11 +46,6 @@ public class TileName implements Comparable<TileName>
       lat = lon = 0;
   }
 
-  public TileName(Point2D.Double p)
-  {
-    this((int)-Math.ceil(p.y), (int)Math.floor(p.x));
-  }
-
   public int compareTo(TileName l) {
     return name.compareTo(l.getName());
   }
@@ -69,7 +69,7 @@ public class TileName implements Comparable<TileName>
   public String computeTileName(Point2D.Double p)
   {
     if (p == null) return "";
-    return computeTileName((int)Math.floor(p.x), (int)-Math.ceil(p.y));
+    return computeTileName((int)-Math.ceil(p.y), (int)Math.floor(p.x));
   }
 
   // W and S are negative
@@ -87,5 +87,23 @@ public class TileName implements Comparable<TileName>
     }
     // XXX check sanity
     return String.format("%c%03d%c%02d", ew, lon, ns, lat);
+  }
+
+
+
+
+  public TileName getTile(String n)
+  {
+    return tilenameMap.get(n);
+  }
+
+  public TileName getTile(int x, int y)
+  {
+    return tilenameMap.get(computeTileName(y, x));
+  }
+
+  public TileName getTile(Point2D.Double p)
+  {
+    return tilenameMap.get(computeTileName(p));
   }
 }

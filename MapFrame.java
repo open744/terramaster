@@ -244,7 +244,7 @@ class MapPanel extends JPanel {
 	    if (d1 == null || d2 == null) return;
 
 	    if ((e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) == 0)
-	      selectionList.clear();
+	      selectionSet.clear();
 
 	    int		x1 = (int)Math.floor(d1.x),
 			y1 = (int)-Math.ceil(d1.y),
@@ -268,10 +268,12 @@ class MapPanel extends JPanel {
 	    Object[]	arr = l.toArray();
 	    Arrays.sort(arr);
 
-	    // finally, add the sorted list to selectionList
+	    // finally, add the sorted list to selectionSet
 	    for (Object t : arr) {
 	      SortPoint p = (SortPoint)t;
-	      selectionList.add(new TileName(p.p.y, p.p.x));
+	      TileName n = TerraMaster.tilenameManager.getTile(p.p.x, p.p.y);
+	      if (!selectionSet.add(n))
+		selectionSet.remove(n);		// remove on reselect
 	    }
 	    repaint();
 debugSelection();
@@ -280,11 +282,10 @@ debugSelection();
 private void debugSelection()
 {
   String str = "";
-  for (TileName t : selectionList)
+  for (TileName t : selectionSet)
     str += t.getName() + " ";
 
-  System.out.println(String.format("%d %s",
-      selectionList.size(), str));
+  System.out.println(String.format("%d %s", selectionSet.size(), str));
 }
 
 	  public void mouseDragged(MouseEvent e) {
@@ -318,13 +319,13 @@ private void debugSelection()
 	  public void mouseDraggedSelection(MouseEvent e) {
 	    last = e.getPoint();
 	    if ((e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) == 0)
-	      selectionList.clear();
+	      selectionSet.clear();
 	    boxSelection(screen2geo(press), screen2geo(last));
 	    repaint();
 	  }
 
 	  private boolean selection = false;
-	  private ArrayList<TileName> selectionList = new ArrayList<TileName>();
+	  private TreeSet<TileName> selectionSet = new TreeSet<TileName>();
 	  private int[] dragbox;
 
 	  // capture all 1x1 boxes between press and last
@@ -345,9 +346,9 @@ private void debugSelection()
 	    selection = true;
 	  }
 
-	  // returns union of selectionList + dragbox
+	  // returns union of selectionSet + dragbox
 	  TreeSet<TileName> getSelection() {
-	    TreeSet<TileName> selSet = new TreeSet<TileName>(selectionList);
+	    TreeSet<TileName> selSet = new TreeSet<TileName>(selectionSet);
 
 	    if (dragbox != null) {
 	      int l = dragbox[0];
@@ -360,13 +361,9 @@ private void debugSelection()
 	      t += inc_j;
 	      for (int i = l; i != r; i += inc_i) {
 		for (int j = b; j != t; j += inc_j) {
-		  TileName n = new TileName(j, i);
-		  if (!selSet.add(n)) {
-		    // already in set, remove it
-		    selSet.remove(n);
-		    selectionList.remove(n);
-System.out.println("remove "+n.getName());
-		  }
+		  TileName n = TerraMaster.tilenameManager.getTile(i, j);
+		  if (!selSet.add(n))
+		    selSet.remove(n);	// remove on reselect
 		}
 	      }
 	    }
@@ -381,7 +378,7 @@ System.out.println("remove "+n.getName());
 	    mapFrame.labelObj.setEnabled(false);
 	    mapFrame.labelTerr.setEnabled(false);
 
-	    TileName tile = new TileName(p2);
+	    TileName tile = TerraMaster.tilenameManager.getTile(p2);
 	    String txt = tile.getName();
 	    mapFrame.tileName.setText(txt);
 	    if (txt.equals("")) {
@@ -395,36 +392,22 @@ System.out.println("remove "+n.getName());
 	    /*
 	    // not Ctrl-click, clear previous selection
 	    if ((e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) == 0)
-	      selectionList.clear();
-	    selectionList.add(tile);
+	      selectionSet.clear();
+	    selectionSet.add(tile);
 	    selection = true;
 	    repaint();
 debugSelection();
 	    */
 
+	    /* moved to tooltip
 	    if (TerraMaster.mapScenery.containsKey(txt)) {
 	      // get Terr, Obj, airports
 	      // "Sync" and "Delete" buttons
 
 	      TileData	t = TerraMaster.mapScenery.get(txt);
 
-	      if (t.terrain) {
+	      if (t.terrain)
 		mapFrame.labelTerr.setEnabled(true);
-		File	f = t.dir_terr;
-		String str = "";
-		for (String i : f.list()) {
-		  if (i.endsWith(".btg.gz")) {
-		    int n = i.indexOf('.');
-		    if (n > 4) n = 4;
-		    i = i.substring(0, n);
-		    try {
-		    Short.parseShort(i);
-		    } catch (Exception x) {
-		    str += i + " ";
-		    }
-		  }
-		}
-	      }
 
 	      if (t.objects)
 		mapFrame.labelObj.setEnabled(true);
@@ -435,6 +418,7 @@ debugSelection();
 	    } else {
 	      mapFrame.butDelete.setEnabled(false);
 	    }
+	    */
 	  }
 
 	  public void mouseWheelMoved(MouseWheelEvent e) {
@@ -510,7 +494,46 @@ debugSelection();
 
   public String getToolTipText(MouseEvent e) {
     Point s = e.getPoint();
-    return new TileName(screen2geo(s)).getName();
+    //return TerraMaster.tilenameManager.getTile(screen2geo(s)).getName();
+    String txt = "";
+    String str = "";
+
+    TileName t = TerraMaster.tilenameManager.getTile(screen2geo(s));
+    if (t != null) txt = t.getName();
+
+    if (TerraMaster.mapScenery.containsKey(txt)) {
+      // list Terr, Obj, airports
+
+      TileData d = TerraMaster.mapScenery.get(txt);
+      txt = "<html>" + txt;
+
+      if (d.terrain) {
+	txt += " +Terr";
+	File f = d.dir_terr;
+	int count = 0;
+	for (String i : f.list()) {
+	  if (i.endsWith(".btg.gz")) {
+	    int n = i.indexOf('.');
+	    if (n > 4) n = 4;
+	    i = i.substring(0, n);
+	    try {
+	    Short.parseShort(i);
+	    } catch (Exception x) {
+	    str += i + " ";
+	    if ((++count % 4) == 0)
+	      str += "<br>";
+	    }
+	  }
+	}
+      }
+      if (d.objects)
+	txt += " +Obj";
+      if (str.length() > 0)
+	txt += "<br>" + str;
+
+      txt += "</html>";
+    }
+    return txt;
   }
 
   public int polyCount() {
