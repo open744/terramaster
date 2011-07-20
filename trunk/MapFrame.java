@@ -32,7 +32,7 @@ public class MapFrame extends JFrame {
 	    String	a = e.getActionCommand();
 
 	    if (a.equals("SYNC")) {
-	      svn.sync(map.mousehandler.getSelection());
+	      TerraMaster.svn.sync(map.mousehandler.getSelection());
 
 	      // use list of tilenames from textQue
 	      // add to svn queue
@@ -65,7 +65,7 @@ public class MapFrame extends JFrame {
 		TerraMaster.mapScenery =
 		    TerraMaster.newScnMap(f.getPath());
 		repaint();
-		svn.setScnPath(f);
+		TerraMaster.svn.setScnPath(f);
 		} catch (Exception x) {}
 	      }
 	    }
@@ -76,16 +76,13 @@ public class MapFrame extends JFrame {
   MapPanel	map;
   JTextField	tileName;
   JButton	butSync, butDelete, butReset, butPrefs;
-  Svn		svn;
   JFileChooser	fc = new JFileChooser();
 
   public MapFrame(String title) {
     MFAdapter	ad = new MFAdapter();
 
-    svn = new Svn();
-
     // XXX mine
-    svn.setScnPath(new File("/build/flightgear/2.0/share/FlightGear/Scenery/"));
+    TerraMaster.svn.setScnPath(new File("/build/flightgear/2.0/share/FlightGear/Scenery/"));
     TerraMaster.mapScenery = TerraMaster.newScnMap("/build/flightgear/2.0/share/FlightGear/Scenery/");
 
     this.title = title;
