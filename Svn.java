@@ -1,4 +1,4 @@
-import	java.util.Collection;
+import	java.util.*;
 import	java.io.File;
 import	javax.swing.SwingWorker;
 import	org.tmatesoft.svn.core.wc.*;
@@ -8,7 +8,7 @@ import	org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
 
 // svn --force co http://terrascenery.googlecode.com/svn/trunk/data/Scenery/Terrain/e100n00/e104n00
 
-class Svn
+class Svn extends Thread
 {
   SVNClientManager clientManager;
   SVNUpdateClient updateClient;
@@ -16,12 +16,16 @@ class Svn
   String urlBase = "http://terrascenery.googlecode.com/svn/trunk/data/Scenery/";
   String pathBase;
 
+  LinkedList<TileName> syncList;
+
   Svn() {
     DAVRepositoryFactory.setup();
     clientManager = SVNClientManager.newInstance();
     updateClient = clientManager.getUpdateClient();
     statusClient = clientManager.getStatusClient();
     updateClient.setIgnoreExternals(false);
+
+    syncList = new LinkedList<TileName>();
   }
 
   // given a 1x1 tile, figure out the parent 10x10 container
@@ -44,28 +48,10 @@ class Svn
     return String.format("%s%03d%s%02d/%s", ew, lon, ns, lat, tile);
   }
 
+  // XXX synchronized
   void sync(final Collection<TileName> set)
   {
-    SwingWorker	worker = new SwingWorker<Boolean, Void>() {
-      public Boolean doInBackground()
-      {
-	for (TileName n : set) {
-	  String path = buildPath(n.getName());
-	  if (path != null) {
-	    checkout("Terrain/"+path);
-	    checkout("Objects/"+path);
-	    // send signal to change 1x1 tile color
-	  }
-	}
-	return Boolean.valueOf(true);
-      }
-
-      public void done()
-      {
-	System.out.println("svn.sync done");
-      }
-    };
-    worker.execute();
+    syncList.addAll(set);
 
     /*
     int st = 0;
@@ -87,11 +73,11 @@ class Svn
   System.out.println(stat.getURL());
   */
 
-  void checkout(String node) {
+  private void checkout(String node) {
 
     // debug
     if (true) {
-      System.out.println("checkout "+pathBase+node);
+      System.out.println("checkout "+node);
       try { Thread.sleep(1500); } catch (Exception x) { }
       return;
     }
@@ -122,6 +108,24 @@ class Svn
 
   void setScnPath(File f) {
     pathBase = f.getPath() + "/";
+  }
+
+  private boolean noquit = true;
+
+  // XXX synchronized
+  public void run()
+  {
+    while (noquit) {
+      if (syncList.size() > 0) {
+	TileName n = syncList.removeFirst();
+	String path = buildPath(n.getName());
+	if (path != null) {
+	  checkout("Terrain/"+path);
+	  checkout("Objects/"+path);
+	}
+      } else
+	try { Thread.sleep(500); } catch (Exception x) { }
+    }
   }
 
 }

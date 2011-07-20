@@ -24,7 +24,7 @@ public class TerraMaster {
 			OBJECTS = 1;
 
   public static TileName tilenameManager;
-
+  public static Svn svn;
 
   static void buildScnMap(File f, Map<String, TileData> map, int type) {
     TileData	t;
@@ -171,6 +171,8 @@ System.out.println("worker.doInBackground()");
   public static void main(String args[]) {
 
     tilenameManager = new TileName();
+    svn = new Svn();
+    svn.start();	// the Svn thread processes the tile queue
 
     SwingUtilities.invokeLater(new Runnable() {
 	public void run() {
