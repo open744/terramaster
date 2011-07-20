@@ -21,8 +21,6 @@ public class MapFrame extends JFrame {
 	    //System.out.println(d);
 
 	    tileName.setLocation(d.width-100, 20);
-	    labelTerr.setLocation(d.width-100, 40);
-	    labelObj.setLocation(d.width- 50, 40);
 	    butSync.setLocation(d.width-100, 80);
 	    butDelete.setLocation(d.width-100, 80+20);
 	    butReset.setLocation(d.width-100, d.height-40);
@@ -34,15 +32,15 @@ public class MapFrame extends JFrame {
 	    String	a = e.getActionCommand();
 
 	    if (a.equals("SYNC")) {
-	      svn.sync("XXX");
+	      svn.sync(map.mousehandler.getSelection());
 
 	      // use list of tilenames from textQue
 	      // add to svn queue
-	      //map.mousehandler.getSelection()
 	    } else
 
 	    if (a.equals("DELETE")) {
 	      TileData	t = TerraMaster.mapScenery.get(tileName.getText());
+	      //Collection<TileName> t = map.mousehandler.getSelection();
 	      try {
 	      System.out.println("rm -r "
 		  + (t.terrain ? t.dir_terr.getCanonicalFile() : "") + " "
@@ -77,7 +75,6 @@ public class MapFrame extends JFrame {
   String	title;
   MapPanel	map;
   JTextField	tileName;
-  JLabel	labelTerr, labelObj;
   JButton	butSync, butDelete, butReset, butPrefs;
   Svn		svn;
   JFileChooser	fc = new JFileChooser();
@@ -99,22 +96,6 @@ public class MapFrame extends JFrame {
     tileName = new JTextField(8);
     tileName.setBounds(0, 20, 100, 20);
     add(tileName);
-
-    Border	b = new SoftBevelBorder(BevelBorder.RAISED);
-
-    labelTerr = new JLabel();
-    labelTerr.setBounds( 0, 40, 50, 20);
-    labelTerr.setText("TERR");
-    labelTerr.setEnabled(false);
-    labelTerr.setBorder(b);
-    add(labelTerr);
-
-    labelObj  = new JLabel();
-    labelObj.setBounds(50, 40, 50, 20);
-    labelObj.setText("OBJ");
-    labelObj.setEnabled(false);
-    labelObj.setBorder(b);
-    add(labelObj);
 
     butSync = new JButton("SYNC");
     butSync.setBounds(0, 80, 100, 20);
@@ -325,7 +306,7 @@ private void debugSelection()
 	  }
 
 	  private boolean selection = false;
-	  private TreeSet<TileName> selectionSet = new TreeSet<TileName>();
+	  private Collection<TileName> selectionSet = new LinkedHashSet<TileName>();
 	  private int[] dragbox;
 
 	  // capture all 1x1 boxes between press and last
@@ -347,8 +328,8 @@ private void debugSelection()
 	  }
 
 	  // returns union of selectionSet + dragbox
-	  TreeSet<TileName> getSelection() {
-	    TreeSet<TileName> selSet = new TreeSet<TileName>(selectionSet);
+	  Collection<TileName> getSelection() {
+	    Collection<TileName> selSet = new LinkedHashSet<TileName>(selectionSet);
 
 	    if (dragbox != null) {
 	      int l = dragbox[0];
@@ -374,9 +355,6 @@ private void debugSelection()
 	    Dimension	d = getSize(null);	// because of drawImage
 	    Point	s = e.getPoint();
 	    Point2D.Double p2 = screen2geo(s);
-
-	    mapFrame.labelObj.setEnabled(false);
-	    mapFrame.labelTerr.setEnabled(false);
 
 	    TileName tile = TerraMaster.tilenameManager.getTile(p2);
 	    String txt = tile.getName();
@@ -683,7 +661,7 @@ debugSelection();
   }
 
   void showSelection(Graphics g) {
-    TreeSet<TileName> a = mousehandler.getSelection();
+    Collection<TileName> a = mousehandler.getSelection();
     if (a == null) return;
 
     g.setColor(Color.red);

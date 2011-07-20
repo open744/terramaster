@@ -1,4 +1,6 @@
+import	java.util.Collection;
 import	java.io.File;
+import	javax.swing.SwingWorker;
 import	org.tmatesoft.svn.core.wc.*;
 import	org.tmatesoft.svn.core.SVNURL;
 import	org.tmatesoft.svn.core.SVNDepth;
@@ -42,7 +44,30 @@ class Svn
     return String.format("%s%03d%s%02d/%s", ew, lon, ns, lat, tile);
   }
 
-  void sync(String list) {
+  void sync(final Collection<TileName> set)
+  {
+    SwingWorker	worker = new SwingWorker<Boolean, Void>() {
+      public Boolean doInBackground()
+      {
+	for (TileName n : set) {
+	  String path = buildPath(n.getName());
+	  if (path != null) {
+	    checkout("Terrain/"+path);
+	    checkout("Objects/"+path);
+	    // send signal to change 1x1 tile color
+	  }
+	}
+	return Boolean.valueOf(true);
+      }
+
+      public void done()
+      {
+	System.out.println("svn.sync done");
+      }
+    };
+    worker.execute();
+
+    /*
     int st = 0;
     int end;
     while ((end = list.indexOf(' ', st)) != -1) {
@@ -53,6 +78,7 @@ class Svn
       }
       st = end + 1;
     }
+    */
   }
 
   /*
@@ -66,6 +92,7 @@ class Svn
     // debug
     if (true) {
       System.out.println("checkout "+pathBase+node);
+      try { Thread.sleep(1500); } catch (Exception x) { }
       return;
     }
 

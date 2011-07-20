@@ -64,6 +64,7 @@ public class TerraMaster {
 
     for (int i = 0; i < types.length; ++i) {
       File	list[] = new File(path + types[i]).listFiles();
+      if (list == null) return map;
 
       // list of 10x10 dirs
       for (File f: list) {
@@ -153,11 +154,15 @@ System.out.println("worker.doInBackground()");
     frame.setVisible(true);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-    if (worker.isDone()) {
-      frame.initImage();
-      frame.showTiles();
-      frame.repaint();
+    try {
+      while (!worker.isDone())
+	Thread.sleep(100);
+    } catch (InterruptedException x) {
     }
+
+    frame.initImage();
+    frame.showTiles();
+    frame.repaint();
 
     System.out.println("isEventDispThread " +
 	SwingUtilities.isEventDispatchThread());
