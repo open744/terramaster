@@ -16,9 +16,10 @@ public class TerraMaster {
 
   public static ArrayList<MapPoly>	polys;
 
-  MapFrame	frame;
+  static MapFrame	frame;
   public GshhsHeader	gshhsHeader;
 
+  // XXX use Map<TileName, TileData>
   public static Map<String, TileData>	mapScenery;
   static final int	TERRAIN = 0,
 			OBJECTS = 1;
@@ -26,41 +27,45 @@ public class TerraMaster {
   public static TileName tilenameManager;
   public static Svn svn;
 
-  static void buildScnMap(File f, Map<String, TileData> map, int type) {
-    TileData	t;
-    File	x[] = f.listFiles();
-    Pattern	p = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
+  public static void addScnMapTile(Map<String, TileData> map, File i, int type)
+  {
+    String str = i.getName();
+    TileData t = map.get(str);
+    if (t == null) {
+      // make a new TileData
+      t = new TileData();
+    }
+    switch (type) {
+    case TERRAIN:
+      t.terrain = true;
+      t.dir_terr = i;
+      break;
+    case OBJECTS:
+      t.objects = true;
+      t.dir_obj = i;
+      break;
+    }
+    map.put(str, t);
+  }
+
+  static void buildScnMap(File f, Map<String, TileData> map, int type)
+  {
+    File x[] = f.listFiles();
+    Pattern p = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
 
     for (File i: x) {
-      String	str = i.getName();
-      Matcher	m = p.matcher(str);
-      if (m.matches()) {
-	t = map.get(str);
-	if (t == null) {
-	  // make a new TileData
-	  t = new TileData();
-	}
-	switch (type) {
-	case TERRAIN:
-	  t.terrain = true;
-	  t.dir_terr = i;
-	  break;
-	case OBJECTS:
-	  t.objects = true;
-	  t.dir_obj = i;
-	  break;
-	}
-	map.put(str, t);
-      }
+      Matcher	m = p.matcher(i.getName());
+      if (m.matches())
+	addScnMapTile(map, i, type);
     }
   }
 
   // builds a HashMap of /Terrain and /Objects
   static Map<String, TileData> newScnMap(String path)
   {
-    String[]	types = { "/Terrain", "/Objects" };
-    Pattern	patt = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
-    Map<String, TileData>	map = new HashMap<String, TileData>(180*90);
+    String[] types = { "/Terrain", "/Objects" };
+    Pattern patt = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
+    Map<String, TileData> map = new HashMap<String, TileData>(180*90);
 
     for (int i = 0; i < types.length; ++i) {
       File	list[] = new File(path + types[i]).listFiles();
@@ -81,8 +86,9 @@ public class TerraMaster {
 
 
 
-  int readGshhsHeader(DataInput s, GshhsHeader h) {
-    int		fl;
+  int readGshhsHeader(DataInput s, GshhsHeader h)
+  {
+    int	 fl;
     try {
       h.id = s.readInt();
       h.n  = s.readInt();	// npoints
@@ -105,48 +111,48 @@ public class TerraMaster {
 
   // reads in GSHHS and builds ArrayList of polys
   SwingWorker	worker = new SwingWorker<ArrayList<MapPoly>, Void>() {
+      public ArrayList<MapPoly> doInBackground() {
 
-    public ArrayList<MapPoly> doInBackground() {
-
-      ArrayList<MapPoly>	poly = new ArrayList<MapPoly>();
-      String			filename = "gshhs_l.b";
+	ArrayList<MapPoly>	poly = new ArrayList<MapPoly>();
+	String			filename = "gshhs_l.b";
 
 System.out.println("worker.doInBackground()");
-      try {
-	GshhsHeader	h = new GshhsHeader();
-	DataInput	s = new DataInputStream(new
-	    FileInputStream(new File(filename)));
+	try {
+	  GshhsHeader	h = new GshhsHeader();
+	  DataInput	s = new DataInputStream(new
+	      FileInputStream(new File(filename)));
 
-	int n = 0;
-	while ((n = readGshhsHeader(s, h)) > 0) {
-	  poly.add(new MapPoly(s, h));
+	  int n = 0;
+	  while ((n = readGshhsHeader(s, h)) > 0) {
+	    poly.add(new MapPoly(s, h));
+	  }
+	} catch (Exception e) {
+	  System.out.println(filename + ": " + e);
+	  System.exit(-1);
 	}
-      } catch (Exception e) {
-	System.out.println(filename + ": " + e);
-	System.exit(-1);
+
+	return poly;
       }
 
-      return poly;
-    }
-
-    public void done() {
-      // called by Event Disp thread
-      // waits for worker to finish
-      try {
-	polys = get();
-	System.out.println("worker: polys " + polys.size());
-	frame.passPolys(polys);
-      } catch (Exception e) {
-	System.out.println(e);
+      public void done() {
+	// called by Event Disp thread
+	// waits for worker to finish
+	try {
+	  polys = get();
+	  System.out.println("worker.done(): polys " + polys.size());
+	  frame.passPolys(polys);
+	} catch (Exception e) {
+	  System.out.println(e);
+	}
       }
-    }
 
   };
 
-  void createAndShowGUI() {
+  void createAndShowGUI()
+  {
+System.out.println("isEventDispThread " + SwingUtilities.isEventDispatchThread());
 
     mapScenery = new HashMap<String, TileData>();	// empty
-    worker.execute();
 
     frame = new MapFrame("TerraMaster");
     frame.setSize(740, 640);
@@ -154,18 +160,16 @@ System.out.println("worker.doInBackground()");
     frame.setVisible(true);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+    worker.execute();
     try {
       while (!worker.isDone())
 	Thread.sleep(100);
-    } catch (InterruptedException x) {
-    }
+    } catch (InterruptedException x) { }
 
     frame.initImage();
     frame.showTiles();
     frame.repaint();
 
-    System.out.println("isEventDispThread " +
-	SwingUtilities.isEventDispatchThread());
   }
 
   public static void main(String args[]) {
