@@ -1,4 +1,3 @@
-
 import	java.io.*;
 import	java.awt.*;
 import	java.awt.image.*;
@@ -18,7 +17,6 @@ public class MapFrame extends JFrame {
 
 	  public void componentResized(ComponentEvent e) {
 	    Rectangle	d = getContentPane().getBounds(null);
-	    //System.out.println(d);
 
 	    tileName.setLocation(d.width-100, 20);
 	    butSync.setLocation(d.width-100, 80);
@@ -33,12 +31,15 @@ public class MapFrame extends JFrame {
 
 	    if (a.equals("SYNC")) {
 	      TerraMaster.svn.sync(map.mousehandler.getSelection());
+	      map.mousehandler.clearSelection();
+	      map.repaint();
 
 	      // use list of tilenames from textQue
 	      // add to svn queue
 	    } else
 
 	    if (a.equals("DELETE")) {
+	      // XXX
 	      TileData	t = TerraMaster.mapScenery.get(tileName.getText());
 	      //Collection<TileName> t = map.mousehandler.getSelection();
 	      try {
@@ -143,11 +144,12 @@ public class MapFrame extends JFrame {
     map.initImage();
   }
 
-  /*
-  public void paint(Graphics g) {
+  // invoked from Svn thread
+  public void doSvnUpdate(TileName n) {
+    // TODO: paint just one 1x1
     map.repaint();
   }
-  */
+
 }
 
 
@@ -254,17 +256,7 @@ class MapPanel extends JPanel {
 		selectionSet.remove(n);		// remove on reselect
 	    }
 	    repaint();
-debugSelection();
 	  }
-
-private void debugSelection()
-{
-  String str = "";
-  for (TileName t : selectionSet)
-    str += t.getName() + " ";
-
-  System.out.println(String.format("%d %s", selectionSet.size(), str));
-}
 
 	  public void mouseDragged(MouseEvent e) {
 	    switch (mode) {
@@ -348,6 +340,10 @@ private void debugSelection()
 	    return selSet;
 	  }
 
+	  void clearSelection() {
+	    selectionSet.clear();
+	  }
+
 	  public void mouseClicked(MouseEvent e) {
 	    Dimension	d = getSize(null);	// because of drawImage
 	    Point	s = e.getPoint();
@@ -371,7 +367,6 @@ private void debugSelection()
 	    selectionSet.add(tile);
 	    selection = true;
 	    repaint();
-debugSelection();
 	    */
 
 	    /* moved to tooltip
@@ -598,12 +593,12 @@ debugSelection();
     //g.clearRect(0, 0, 1600, 800);
     g.setTransform(affine);
 
-    Set<String>	keys = TerraMaster.mapScenery.keySet();
-    Pattern	p = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
-
     g.setColor(grey);
     g.setColor(Color.gray);
     drawGraticule(g, 10);
+
+    Set<String>	keys = TerraMaster.mapScenery.keySet();
+    Pattern	p = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
 
     for (String s: keys) {
       Matcher	m = p.matcher(s);
@@ -662,6 +657,17 @@ debugSelection();
     if (a == null) return;
 
     g.setColor(Color.red);
+    for (TileName t : a) {
+      Polygon p = box1x1(t.getLon(), t.getLat());
+      if (p != null) g.drawPolygon(p);
+    }
+  }
+
+  void showSyncList(Graphics g) {
+    Collection<TileName> a = TerraMaster.svn.syncList;
+    if (a == null) return;
+
+    g.setColor(Color.cyan);
     for (TileName t : a) {
       Polygon p = box1x1(t.getLon(), t.getLat());
       if (p != null) g.drawPolygon(p);
@@ -767,6 +773,7 @@ debugSelection();
     initImage(g2);
     showTiles(g2);
     showSelection(g2);
+    showSyncList(g2);
 
     /*
     Dimension	d = getSize(null);

@@ -1,7 +1,8 @@
 import	java.util.*;
 import	java.io.File;
-import	javax.swing.SwingWorker;
+import	javax.swing.SwingUtilities;
 import	org.tmatesoft.svn.core.wc.*;
+import	org.tmatesoft.svn.core.SVNException;
 import	org.tmatesoft.svn.core.SVNURL;
 import	org.tmatesoft.svn.core.SVNDepth;
 import	org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
@@ -48,23 +49,11 @@ class Svn extends Thread
     return String.format("%s%03d%s%02d/%s", ew, lon, ns, lat, tile);
   }
 
-  // XXX synchronized
   void sync(final Collection<TileName> set)
   {
-    syncList.addAll(set);
-
-    /*
-    int st = 0;
-    int end;
-    while ((end = list.indexOf(' ', st)) != -1) {
-      String path = buildPath(list.substring(st, end));
-      if (path != null) {
-	checkout("Terrain/"+path);
-	checkout("Objects/"+path);
-      }
-      st = end + 1;
+    synchronized(syncList) {
+      syncList.addAll(set);
     }
-    */
   }
 
   /*
@@ -73,25 +62,28 @@ class Svn extends Thread
   System.out.println(stat.getURL());
   */
 
-  private void checkout(String node) {
+  private void checkout(String name) {
+    String[] types = { "Terrain/", "Objects/" };
+    int[] ntype = { TerraMaster.TERRAIN, TerraMaster.OBJECTS };
 
-    // debug
-    if (true) {
-      System.out.println("checkout "+node);
-      try { Thread.sleep(1500); } catch (Exception x) { }
-      return;
+    System.out.print("checkout "+name+"... ");
+    System.out.flush();
+
+    for (int i = 0; i < types.length; ++i) {
+      String node = types[i]+name;
+
+      try {
+
+      SVNURL url = SVNURL.parseURIDecoded(urlBase + node);
+      File f = new File(pathBase + node);
+      long rev = updateClient.doCheckout(url, f, SVNRevision.HEAD,
+	  SVNRevision.HEAD, SVNDepth.INFINITY, true);
+      System.out.printf("checked out rev %s\n", rev);
+      TerraMaster.addScnMapTile(TerraMaster.mapScenery, f, ntype[i]);
+
+      } catch (SVNException x) { System.out.println(x.getMessage());
+      } catch (Exception x) { System.out.println(x); }
     }
-
-    try {
-
-    SVNURL url = SVNURL.parseURIDecoded(urlBase + node);
-    File f = new File(pathBase + node);
-
-    long rev = updateClient.doCheckout(url, f, SVNRevision.HEAD,
-	SVNRevision.HEAD, SVNDepth.INFINITY, true);
-    System.out.println("checked out " + rev);
-
-    } catch (Exception x) { System.out.println(x); }
 
     /*
     private static long checkout( SVNURL url , SVNRevision revision , File destPath , boolean isRecursive ) throws SVNException {
@@ -112,19 +104,29 @@ class Svn extends Thread
 
   private boolean noquit = true;
 
-  // XXX synchronized
   public void run()
   {
     while (noquit) {
       if (syncList.size() > 0) {
-	TileName n = syncList.removeFirst();
-	String path = buildPath(n.getName());
-	if (path != null) {
-	  checkout("Terrain/"+path);
-	  checkout("Objects/"+path);
+	final TileName n;
+	synchronized(syncList) {
+	  n = syncList.getFirst();
 	}
+	String path = buildPath(n.getName());
+	if (path != null)
+	  checkout(path);
+
+	synchronized(syncList) {
+	  syncList.remove(n);
+	}
+	// invoke this on the Event Disp Thread
+	SwingUtilities.invokeLater(new Runnable() {
+	    public void run() {
+	      TerraMaster.frame.doSvnUpdate(n);
+	    }   
+	});
       } else
-	try { Thread.sleep(500); } catch (Exception x) { }
+	try { Thread.sleep(1000); } catch (Exception x) { }
     }
   }
 
