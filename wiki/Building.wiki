@@ -1,5 +1,5 @@
 #summary Building TerraMaster.
-#labels Phase-Deploy
+#labels Phase-Deploy,Featured
 
 = Required libraries =
 
