@@ -1,4 +1,5 @@
 #summary A GUI for managing FlightGear scenery collections.
+#labels Featured
 
 Building.
 
