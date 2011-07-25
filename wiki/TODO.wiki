@@ -1,0 +1,3 @@
+Toggle WinkelTriple projection.
+Double-click for priority sync.
+Show airports (all, selected).
