@@ -19,18 +19,18 @@ public class TerraMaster {
   static MapFrame	frame;
   public GshhsHeader	gshhsHeader;
 
-  // XXX use Map<TileName, TileData>
-  public static Map<String, TileData>	mapScenery;
+  public static Map<TileName, TileData>	mapScenery;
   static final int	TERRAIN = 0,
 			OBJECTS = 1;
 
   public static TileName tilenameManager;
   public static Svn svn;
 
-  public static void addScnMapTile(Map<String, TileData> map, File i, int type)
+  public static void addScnMapTile(Map<TileName, TileData> map,
+				   File i, int type)
   {
-    String str = i.getName();
-    TileData t = map.get(str);
+    TileName n = tilenameManager.getTile(i.getName());
+    TileData t = map.get(n);
     if (t == null) {
       // make a new TileData
       t = new TileData();
@@ -45,10 +45,10 @@ public class TerraMaster {
       t.dir_obj = i;
       break;
     }
-    map.put(str, t);
+    map.put(n, t);
   }
 
-  static void buildScnMap(File f, Map<String, TileData> map, int type)
+  static void buildScnMap(File f, Map<TileName, TileData> map, int type)
   {
     File x[] = f.listFiles();
     Pattern p = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
@@ -61,11 +61,11 @@ public class TerraMaster {
   }
 
   // builds a HashMap of /Terrain and /Objects
-  static Map<String, TileData> newScnMap(String path)
+  static Map<TileName, TileData> newScnMap(String path)
   {
     String[] types = { "/Terrain", "/Objects" };
     Pattern patt = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
-    Map<String, TileData> map = new HashMap<String, TileData>(180*90);
+    Map<TileName, TileData> map = new HashMap<TileName, TileData>(180*90);
 
     for (int i = 0; i < types.length; ++i) {
       File	list[] = new File(path + types[i]).listFiles();
@@ -116,7 +116,6 @@ public class TerraMaster {
 	ArrayList<MapPoly>	poly = new ArrayList<MapPoly>();
 	String			filename = "gshhs_l.b";
 
-System.out.println("worker.doInBackground()");
 	try {
 	  GshhsHeader	h = new GshhsHeader();
 	  DataInput	s = new DataInputStream(new
@@ -131,6 +130,7 @@ System.out.println("worker.doInBackground()");
 	  System.exit(-1);
 	}
 
+System.out.format("worker.doInBackground() completed: %d\n", poly.size());
 	return poly;
       }
 
@@ -150,12 +150,10 @@ System.out.println("worker.doInBackground()");
 
   void createAndShowGUI()
   {
-System.out.println("isEventDispThread " + SwingUtilities.isEventDispatchThread());
-
-    mapScenery = new HashMap<String, TileData>();	// empty
+    mapScenery = new HashMap<TileName, TileData>();	// empty
 
     frame = new MapFrame("TerraMaster");
-    frame.setSize(740, 640);
+    frame.setSize(640, 660);
     frame.setLocationRelativeTo(null);
     frame.setVisible(true);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

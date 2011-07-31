@@ -18,41 +18,33 @@ public class MapFrame extends JFrame {
 	  public void componentResized(ComponentEvent e) {
 	    Rectangle	d = getContentPane().getBounds(null);
 
-	    tileName.setLocation(d.width-100, 20);
-	    butSync.setLocation(d.width-100, 80);
-	    butDelete.setLocation(d.width-100, 80+20);
-	    butReset.setLocation(d.width-100, d.height-40);
-	    butPrefs.setLocation(d.width- 40, d.height-40);
-	    map.setSize(d.width-100, d.height);
+	    tileName.setLocation(   0, 10);
+	    butSync.setLocation(  120, 10);
+	    butDelete.setLocation(220, 10);
+	    butReset.setLocation(340, 0);
+	    butPrefs.setLocation(380, 0);
+	    map.setLocation(0, 40);
+	    map.setSize(d.width, d.height-40);
 	  }
 
 	  public void actionPerformed(ActionEvent e) {
 	    String	a = e.getActionCommand();
 
 	    if (a.equals("SYNC")) {
-	      TerraMaster.svn.sync(map.mousehandler.getSelection());
-	      map.mousehandler.clearSelection();
+	      TerraMaster.svn.sync(map.getSelection());
+	      map.clearSelection();
 	      map.repaint();
-
-	      // use list of tilenames from textQue
-	      // add to svn queue
 	    } else
 
 	    if (a.equals("DELETE")) {
-	      // XXX
-	      TileData	t = TerraMaster.mapScenery.get(tileName.getText());
-	      //Collection<TileName> t = map.mousehandler.getSelection();
-	      try {
-	      System.out.println("rm -r "
-		  + (t.terrain ? t.dir_terr.getCanonicalFile() : "") + " "
-		  + (t.objects ? t.dir_obj.getCanonicalFile()  : "") );
-	      // showTiles();
-	      } catch (Exception x) {}
+	      TerraMaster.svn.delete(map.getSelection());
+	      map.clearSelection();
+	      map.repaint();
 	    } else
 
 	    if (a.equals("RESET")) {
-	      map.reset();
-	      repaint();
+	      map.toggleProj();
+	      map.repaint();
 	    } else
 
 	    if (a.equals("PREFS")) {
@@ -102,7 +94,7 @@ public class MapFrame extends JFrame {
     add(butSync);
     butDelete = new JButton("DELETE");
     butDelete.setBounds(0, 100, 100, 20);
-    butDelete.setEnabled(false);
+    //butDelete.setEnabled(false);
     butDelete.addActionListener(ad);
     butDelete.setActionCommand("DELETE");
     add(butDelete);
@@ -120,15 +112,9 @@ public class MapFrame extends JFrame {
     add(butPrefs);
 
     map = new MapPanel();
-    //map.setBounds(0, 0, 924, 768);
     add(map);
 
     map.passFrame(this);
-
-    /*
-    TerraMaster.mapScenery =
-	newScnMap("/build/flightgear/2.0/share/FlightGear/Scenery");
-    */
   }
 
 
@@ -187,6 +173,24 @@ class MapPanel extends JPanel {
 	  }
 	}
 
+	class SimpleMouseHandler extends MouseAdapter {
+	  public void mouseClicked(MouseEvent e) {
+	    TileName t = TerraMaster.tilenameManager.getTile(screen2geo(e.getPoint()));
+	    projectionLatitude = Math.toRadians(-t.getLat());
+	    projectionLongitude = Math.toRadians(t.getLon());
+	    setOrtho();
+	    repaint();
+	  }
+
+	  public void mouseWheelMoved(MouseWheelEvent e) {
+	    int	n = e.getWheelRotation();
+	    fromMetres -= n;
+	    pj.setFromMetres(Math.pow(2, fromMetres/4));
+	    pj.initialize();
+	    repaint();
+	  }
+	}
+
 	class MouseHandler extends MouseAdapter {
 	  Point		press, last;
 	  int		mode = 0;
@@ -209,8 +213,6 @@ class MapPanel extends JPanel {
 
 	  public void mouseReleasedPanning(MouseEvent e) {
 	    if (!e.getPoint().equals(press)) {
-	      //initImage();
-	      showTiles();
 	      repaint();
 	    }
 	    press = null;
@@ -255,6 +257,9 @@ class MapPanel extends JPanel {
 	      if (!selectionSet.add(n))
 		selectionSet.remove(n);		// remove on reselect
 	    }
+
+	    mapFrame.butDelete.setEnabled(true);
+
 	    repaint();
 	  }
 
@@ -281,8 +286,6 @@ class MapPanel extends JPanel {
 	    pj.setProjectionLatitude(projectionLatitude);
 	    pj.setProjectionLongitude(projectionLongitude);
 	    pj.initialize();
-	    initImage();
-	    //showTiles();
 	    repaint();
 	  }
 
@@ -292,56 +295,6 @@ class MapPanel extends JPanel {
 	      selectionSet.clear();
 	    boxSelection(screen2geo(press), screen2geo(last));
 	    repaint();
-	  }
-
-	  private boolean selection = false;
-	  private Collection<TileName> selectionSet = new LinkedHashSet<TileName>();
-	  private int[] dragbox;
-
-	  // capture all 1x1 boxes between press and last
-	  // (to be drawn by paint() later)
-	  private void boxSelection(Point2D.Double p1,
-				    Point2D.Double p2) {
-	    if (p1 == null || p2 == null) {
-	      //selection = false;
-	      dragbox = null;
-	      return;
-	    }
-
-	    dragbox = new int[4];
-	    dragbox[0] = (int)Math.floor(p1.x);
-	    dragbox[1] = (int)-Math.ceil(p1.y);
-	    dragbox[2] = (int)Math.floor(p2.x);
-	    dragbox[3] = (int)-Math.ceil(p2.y);
-	    selection = true;
-	  }
-
-	  // returns union of selectionSet + dragbox
-	  Collection<TileName> getSelection() {
-	    Collection<TileName> selSet = new LinkedHashSet<TileName>(selectionSet);
-
-	    if (dragbox != null) {
-	      int l = dragbox[0];
-	      int b = dragbox[1];
-	      int r = dragbox[2];
-	      int t = dragbox[3];
-	      int inc_i = (r > l ? 1 : -1),
-		  inc_j = (t > b ? 1 : -1);
-	      r += inc_i;
-	      t += inc_j;
-	      for (int i = l; i != r; i += inc_i) {
-		for (int j = b; j != t; j += inc_j) {
-		  TileName n = TerraMaster.tilenameManager.getTile(i, j);
-		  if (!selSet.add(n))
-		    selSet.remove(n);	// remove on reselect
-		}
-	      }
-	    }
-	    return selSet;
-	  }
-
-	  void clearSelection() {
-	    selectionSet.clear();
 	  }
 
 	  public void mouseClicked(MouseEvent e) {
@@ -360,6 +313,8 @@ class MapPanel extends JPanel {
 
 	    if (p2 == null) return;
 
+	    mapFrame.butDelete.setEnabled(true);
+
 	    /*
 	    // not Ctrl-click, clear previous selection
 	    if ((e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) == 0)
@@ -368,37 +323,24 @@ class MapPanel extends JPanel {
 	    selection = true;
 	    repaint();
 	    */
-
-	    /* moved to tooltip
-	    if (TerraMaster.mapScenery.containsKey(txt)) {
-	      // get Terr, Obj, airports
-	      // "Sync" and "Delete" buttons
-
-	      TileData	t = TerraMaster.mapScenery.get(txt);
-
-	      if (t.terrain)
-		mapFrame.labelTerr.setEnabled(true);
-
-	      if (t.objects)
-		mapFrame.labelObj.setEnabled(true);
-
-	      // activate DELETE buttons
-	      mapFrame.butDelete.setEnabled(true);
-
-	    } else {
-	      mapFrame.butDelete.setEnabled(false);
-	    }
-	    */
 	  }
 
 	  public void mouseWheelMoved(MouseWheelEvent e) {
+	    /*
+	    // recentre
+	    Point2D.Double d2 = screen2geo(e.getPoint());
+	    if (d2 != null) {
+	      projectionLatitude = Math.toRadians(d2.y);
+	      projectionLongitude = Math.toRadians(d2.x);
+	      pj.setProjectionLatitude(projectionLatitude);
+	      pj.setProjectionLongitude(projectionLongitude);
+	    }
+	    */
+
 	    int	n = e.getWheelRotation();
-	    //fromMetres *= Math.scalb(0.9, -n);
 	    fromMetres -= n;
 	    pj.setFromMetres(Math.pow(2, fromMetres/4));
 	    pj.initialize();
-	    initImage();
-	    showTiles();
 	    repaint();
 	  }
 	}
@@ -411,8 +353,6 @@ class MapPanel extends JPanel {
 	    affine = new AffineTransform();
 	    affine.scale(sc, sc);
 	    affine.translate(r, r);
-	    initImage();
-	    showTiles();
 	    repaint();
 	  }
 	}
@@ -421,8 +361,9 @@ class MapPanel extends JPanel {
   BufferedImage		map, grat;
   double		sc;
   MapFrame		mapFrame;
-  AffineTransform	affine = new AffineTransform();
-  MouseHandler		mousehandler;
+  AffineTransform	affine;
+  MouseAdapter		mousehandler;
+  boolean		isWinkel = true;
 
   Projection		pj;
   double	projectionLatitude = -Math.toRadians(-30),
@@ -448,19 +389,92 @@ class MapPanel extends JPanel {
     map = new BufferedImage(1600, 800, BufferedImage.TYPE_INT_RGB);
     grat = new BufferedImage(1600, 800, BufferedImage.TYPE_4BYTE_ABGR);
 
-    mousehandler = new MouseHandler();
-    addMouseWheelListener(mousehandler);
-    addMouseListener(mousehandler);
-    addMouseMotionListener(mousehandler);
-
-    pj = new OrthographicAzimuthalProjection();
-    //pj = new WinkelTripelProjection(); mapRadius = TWOPI;
-    reset();
+    //setOrtho();
+    setWinkel();
 
     System.out.println(pj.getPROJ4Description());
 
     setToolTipText("Hover for tile info");
   }
+
+  private void setOrtho()
+  {
+    pj = new OrthographicAzimuthalProjection();
+    mapRadius = HALFPI - 0.1;
+    isWinkel = false;
+
+    /* depends on click
+    projectionLatitude = -Math.toRadians(0);
+    projectionLongitude = Math.toRadians(0);
+    */
+    pj.setProjectionLatitude(projectionLatitude);
+    pj.setProjectionLongitude(projectionLongitude);
+    fromMetres = 1;
+    pj.setFromMetres(Math.pow(2, fromMetres/4));
+    pj.initialize();
+
+    double r = pj.getEquatorRadius();
+    sc = getBounds(null).width / r / 2;
+    affine = new AffineTransform();
+    affine.scale(sc, sc);
+    affine.translate(r, r);
+
+    removeMouseListener(mousehandler);
+    mousehandler = new MouseHandler();
+    addMouseWheelListener(mousehandler);
+    addMouseListener(mousehandler);
+    addMouseMotionListener(mousehandler);
+  }
+
+  private void setWinkel()
+  {
+    pj = new WinkelTripelProjection();
+    mapRadius = TWOPI;
+    isWinkel = true;
+
+    projectionLatitude = -Math.toRadians(0);
+    projectionLongitude = Math.toRadians(0);
+    pj.setProjectionLatitude(projectionLatitude);
+    pj.setProjectionLongitude(projectionLongitude);
+    fromMetres = -5;
+    pj.setFromMetres(Math.pow(2, fromMetres/4));
+    pj.initialize();
+
+    double r = pj.getEquatorRadius();
+    sc = getBounds(null).width / r / 2;
+    affine = new AffineTransform();
+    affine.scale(sc, sc);
+    affine.translate(r, r);
+
+    removeMouseWheelListener(mousehandler);
+    removeMouseListener(mousehandler);
+    removeMouseMotionListener(mousehandler);
+    mousehandler = new SimpleMouseHandler();
+    addMouseListener(mousehandler);
+
+    clearSelection();
+  }
+
+  public void toggleProj()
+  {
+    if (isWinkel)
+      setOrtho();
+    else
+      setWinkel();
+  }
+
+  void reset() {
+    projectionLatitude = -Math.toRadians(-30);
+    projectionLongitude = Math.toRadians(145);
+    fromMetres = 1;
+    pj.setProjectionLatitude(projectionLatitude);
+    pj.setProjectionLongitude(projectionLongitude);
+    pj.setFromMetres(Math.pow(2, fromMetres/4));
+    pj.initialize();
+  }
+
+
+
 
   public String getToolTipText(MouseEvent e) {
     Point s = e.getPoint();
@@ -471,10 +485,10 @@ class MapPanel extends JPanel {
     TileName t = TerraMaster.tilenameManager.getTile(screen2geo(s));
     if (t != null) txt = t.getName();
 
-    if (TerraMaster.mapScenery.containsKey(txt)) {
+    if (TerraMaster.mapScenery.containsKey(t)) {
       // list Terr, Obj, airports
 
-      TileData d = TerraMaster.mapScenery.get(txt);
+      TileData d = TerraMaster.mapScenery.get(t);
       txt = "<html>" + txt;
 
       if (d.terrain) {
@@ -509,6 +523,93 @@ class MapPanel extends JPanel {
   public int polyCount() {
     return poly.size();
   }
+
+
+  /*
+    selection stuff (moved from MouseHandler)
+  */
+
+  private boolean selection = false;
+  private Collection<TileName> selectionSet = new LinkedHashSet<TileName>();
+  private int[] dragbox;
+
+  // capture all 1x1 boxes between press and last
+  // (to be drawn by paint() later)
+  private void boxSelection(Point2D.Double p1,
+			    Point2D.Double p2) {
+    if (p1 == null || p2 == null) {
+      //selection = false;
+      dragbox = null;
+      return;
+    }
+
+    dragbox = new int[4];
+    dragbox[0] = (int)Math.floor(p1.x);
+    dragbox[1] = (int)-Math.ceil(p1.y);
+    dragbox[2] = (int)Math.floor(p2.x);
+    dragbox[3] = (int)-Math.ceil(p2.y);
+    selection = true;
+  }
+
+  // returns union of selectionSet + dragbox
+  Collection<TileName> getSelection() {
+    Collection<TileName> selSet = new LinkedHashSet<TileName>(selectionSet);
+
+    if (dragbox != null) {
+      int l = dragbox[0];
+      int b = dragbox[1];
+      int r = dragbox[2];
+      int t = dragbox[3];
+      int inc_i = (r > l ? 1 : -1),
+	  inc_j = (t > b ? 1 : -1);
+      r += inc_i;
+      t += inc_j;
+      for (int i = l; i != r; i += inc_i) {
+	for (int j = b; j != t; j += inc_j) {
+	  TileName n = TerraMaster.tilenameManager.getTile(i, j);
+	  if (!selSet.add(n))
+	    selSet.remove(n);	// remove on reselect
+	}
+      }
+    }
+    return selSet;
+  }
+
+  void clearSelection() {
+    selectionSet.clear();
+    if (mapFrame != null) {
+      mapFrame.butSync.setEnabled(false);
+      mapFrame.butDelete.setEnabled(false);
+    }
+  }
+
+  void showSelection(Graphics g) {
+    Collection<TileName> a = getSelection();
+    if (a == null) return;
+
+    g.setColor(Color.red);
+    for (TileName t : a) {
+      Polygon p = box1x1(t.getLon(), t.getLat());
+      if (p != null) g.drawPolygon(p);
+    }
+  }
+
+  void showSyncList(Graphics g) {
+    Collection<TileName> a = TerraMaster.svn.syncList;
+    if (a == null) return;
+
+    g.setColor(Color.cyan);
+    for (TileName t : a) {
+      Polygon p = box1x1(t.getLon(), t.getLat());
+      if (p != null) g.drawPolygon(p);
+    }
+  }
+
+
+
+
+
+
 
   void drawGraticule(Graphics g, int sp) {
     int		x, y;
@@ -597,11 +698,11 @@ class MapPanel extends JPanel {
     g.setColor(Color.gray);
     drawGraticule(g, 10);
 
-    Set<String>	keys = TerraMaster.mapScenery.keySet();
+    Set<TileName> keys = TerraMaster.mapScenery.keySet();
     Pattern	p = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
 
-    for (String s: keys) {
-      Matcher	m = p.matcher(s);
+    for (TileName n: keys) {
+      Matcher	m = p.matcher(n.getName());
       if (m.matches()) {
 	int	lon = Integer.parseInt(m.group(2));
 	int	lat = Integer.parseInt(m.group(4));
@@ -609,7 +710,7 @@ class MapPanel extends JPanel {
 	lat = m.group(3).equals("s") ? -lat : lat;
 
 	Polygon	poly = box1x1(lon, lat);
-	TileData t = TerraMaster.mapScenery.get(s);
+	TileData t = TerraMaster.mapScenery.get(n);
 	t.poly = poly;
 	if (poly != null) {
 	  if (t.terrain && t.objects)
@@ -649,28 +750,6 @@ class MapPanel extends JPanel {
 	if (d.npoints != 0)
 	  g2.fillPolygon(d);
       }
-    }
-  }
-
-  void showSelection(Graphics g) {
-    Collection<TileName> a = mousehandler.getSelection();
-    if (a == null) return;
-
-    g.setColor(Color.red);
-    for (TileName t : a) {
-      Polygon p = box1x1(t.getLon(), t.getLat());
-      if (p != null) g.drawPolygon(p);
-    }
-  }
-
-  void showSyncList(Graphics g) {
-    Collection<TileName> a = TerraMaster.svn.syncList;
-    if (a == null) return;
-
-    g.setColor(Color.cyan);
-    for (TileName t : a) {
-      Polygon p = box1x1(t.getLon(), t.getLat());
-      if (p != null) g.drawPolygon(p);
     }
   }
 
@@ -746,16 +825,6 @@ class MapPanel extends JPanel {
   void project(double lam, double phi, Point2D.Double d) {
     Point2D.Double	s = new Point2D.Double(lam, phi);
     pj.transformRadians(s, d);
-  }
-
-  void reset() {
-    projectionLatitude = -Math.toRadians(-30);
-    projectionLongitude = Math.toRadians(145);
-    fromMetres = 1;
-    pj.setProjectionLatitude(projectionLatitude);
-    pj.setProjectionLongitude(projectionLongitude);
-    pj.setFromMetres(Math.pow(2, fromMetres/4));
-    pj.initialize();
   }
 
   void passFrame(MapFrame f) {

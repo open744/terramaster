@@ -49,7 +49,7 @@ class Svn extends Thread
     return String.format("%s%03d%s%02d/%s", ew, lon, ns, lat, tile);
   }
 
-  void sync(final Collection<TileName> set)
+  void sync(Collection<TileName> set)
   {
     synchronized(syncList) {
       syncList.addAll(set);
@@ -93,6 +93,54 @@ class Svn extends Thread
     }
     */
   }
+
+
+  private void deltree(File d)
+  {
+    for (File f : d.listFiles()) {
+      if (f.isDirectory())
+	deltree(f);
+      try {
+      f.delete();
+      } catch(SecurityException x) {
+	// silently ignore
+	System.out.println(x);
+      }
+    }
+    try {d.delete();}catch(SecurityException x) {}
+  }
+
+  void delete(Collection<TileName> set)
+  {
+    for (TileName n : set) {
+      TileData d = TerraMaster.mapScenery.remove(n);
+      if (d == null) continue;
+      if (d.terrain) {
+	deltree(d.dir_terr);
+      }
+
+      if (d.objects) {
+	deltree(d.dir_obj);
+      }
+
+      synchronized(syncList) {
+	syncList.remove(n);
+      }
+    }
+
+      /*
+      TileData	t = TerraMaster.mapScenery.get(tileName.getText());
+      //Collection<TileName> t = map.getSelection();
+      try {
+      System.out.println("rm -r "
+	  + (t.terrain ? t.dir_terr.getCanonicalFile() : "") + " "
+	  + (t.objects ? t.dir_obj.getCanonicalFile()  : "") );
+      // showTiles();
+      } catch (Exception x) {}
+      */
+  }
+
+
 
   void quit() {
     clientManager.dispose();
