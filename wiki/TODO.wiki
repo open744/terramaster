@@ -1,4 +1,4 @@
-  # Toggle WinkelTriple projection.
+  # Toggle WinkelTriple projection. DONE
   # Double-click for priority sync.
   # Show airports (all, selected).
   # Select tiles along a straight line / great-circle.
