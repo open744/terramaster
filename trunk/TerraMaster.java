@@ -117,29 +117,32 @@ public class TerraMaster {
 	String			filename = "gshhs_l.b";
 
 	try {
-	  GshhsHeader	h = new GshhsHeader();
 	  DataInput	s = new DataInputStream(new
 	      FileInputStream(new File(filename)));
 
 	  int n = 0;
-	  while ((n = readGshhsHeader(s, h)) > 0) {
-	    poly.add(new MapPoly(s, h));
-	  }
+	  do {
+	    GshhsHeader	h = new GshhsHeader();
+	    n = readGshhsHeader(s, h);
+	    if (n > 0) poly.add(new MapPoly(s, h));
+	  } while (n > 0);
 	} catch (Exception e) {
 	  System.out.println(filename + ": " + e);
 	  System.exit(-1);
 	}
 
-System.out.format("worker.doInBackground() completed: %d\n", poly.size());
 	return poly;
       }
 
       public void done() {
 	// called by Event Disp thread
 	// waits for worker to finish
+System.out.format("worker.done() ... "); System.out.flush();
 	try {
+	  while (!isDone())
+	    Thread.sleep(100);
 	  polys = get();
-	  System.out.println("worker.done(): polys " + polys.size());
+	  System.out.format("%d polys\n", polys.size());
 	  frame.passPolys(polys);
 	} catch (Exception e) {
 	  System.out.println(e);
@@ -159,13 +162,7 @@ System.out.format("worker.doInBackground() completed: %d\n", poly.size());
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
     worker.execute();
-    try {
-      while (!worker.isDone())
-	Thread.sleep(100);
-    } catch (InterruptedException x) { }
 
-    frame.initImage();
-    frame.showTiles();
     frame.repaint();
 
   }
