@@ -122,14 +122,6 @@ public class MapFrame extends JFrame {
     map.passPolys(p);
   }
 
-  public void showTiles() {
-    map.showTiles();
-  }
-
-  public void initImage() {
-    map.initImage();
-  }
-
   // invoked from Svn thread
   public void doSvnUpdate(TileName n) {
     // TODO: paint just one 1x1
@@ -145,6 +137,7 @@ class MapPanel extends JPanel {
 
 	private Point2D.Double screen2geo(Point s) {
 	  Point	p = new Point();
+
 	  try {
 	  affine.createInverse().transform(s, p);
 	  Point2D.Double	dp = new Point2D.Double(p.x, p.y),
@@ -347,12 +340,15 @@ class MapPanel extends JPanel {
 
 	class MPAdapter extends ComponentAdapter {
 	  public void componentResized(ComponentEvent e) {
-	    Rectangle	d = getBounds(null);
+	    Rectangle	d = getBounds();
 	    double	r = pj.getEquatorRadius();
-	    sc = d.width / r / 2;
+	    // the lesser dimension
+	    int i = (d.height < d.width ? d.height : d.width);
+
+	    sc = i / r / 2;
 	    affine = new AffineTransform();
 	    affine.scale(sc, sc);
-	    affine.translate(r, r);
+	    affine.translate(r, r);	// XXX
 	    repaint();
 	  }
 	}
@@ -392,14 +388,13 @@ class MapPanel extends JPanel {
     //setOrtho();
     setWinkel();
 
-    System.out.println(pj.getPROJ4Description());
-
-    setToolTipText("Hover for tile info");
+    //setToolTipText("Hover for tile info");
   }
 
   private void setOrtho()
   {
     pj = new OrthographicAzimuthalProjection();
+    System.out.println(pj.getPROJ4Description());
     mapRadius = HALFPI - 0.1;
     isWinkel = false;
 
@@ -414,7 +409,9 @@ class MapPanel extends JPanel {
     pj.initialize();
 
     double r = pj.getEquatorRadius();
-    sc = getBounds(null).width / r / 2;
+    Rectangle d = getBounds(null);
+    int i = (d.height < d.width ? d.height : d.width);
+    sc = i / r / 2;
     affine = new AffineTransform();
     affine.scale(sc, sc);
     affine.translate(r, r);
@@ -429,6 +426,7 @@ class MapPanel extends JPanel {
   private void setWinkel()
   {
     pj = new WinkelTripelProjection();
+    System.out.println(pj.getPROJ4Description());
     mapRadius = TWOPI;
     isWinkel = true;
 
@@ -441,7 +439,9 @@ class MapPanel extends JPanel {
     pj.initialize();
 
     double r = pj.getEquatorRadius();
-    sc = getBounds(null).width / r / 2;
+    Rectangle d = getBounds(null);
+    int i = (d.height < d.width ? d.height : d.width);
+    sc = i / r / 2;
     affine = new AffineTransform();
     affine.scale(sc, sc);
     affine.translate(r, r);
@@ -478,6 +478,7 @@ class MapPanel extends JPanel {
 
   public String getToolTipText(MouseEvent e) {
     Point s = e.getPoint();
+System.out.format("tooltip %d,%d\n", s.x, s.y);
     //return TerraMaster.tilenameManager.getTile(screen2geo(s)).getName();
     String txt = "";
     String str = "";
@@ -679,12 +680,8 @@ class MapPanel extends JPanel {
     return new Polygon(x4, y4, 4);
   }
 
-  void showTiles() {
-    Graphics2D	g = grat.createGraphics();
-    //showTiles(g);
-  }
-
-  void showTiles(Graphics2D g) {
+  void showTiles(Graphics g0) {
+    Graphics2D g = (Graphics2D)g0;
     Color	color, bg = new Color(0, 0, 0, 0),
 		grey  = new Color(128, 128, 128, 224),
 		green = new Color( 64, 224,   0, 128),
@@ -725,30 +722,44 @@ class MapPanel extends JPanel {
     }
   }
 
-  void initImage() {
-    Graphics2D		g2 = map.createGraphics();
-    //initImage(g2);
+  int abrl(int west, int north, Point2D p1, Point2D p2)
+  {
+    int a = 0;
+    double x = west / 1000000.;
+    double y = -north / 1000000.;
+    if (x < p1.getX()) a |= 0x0001;
+    if (x > p2.getX()) a |= 0x0010;
+    if (y < p1.getY()) a |= 0x0100;
+    if (y > p2.getY()) a |= 0x1000;
+    return a;
   }
 
-  // draws the continents
-  void initImage(Graphics2D g2) {
+  // draws the landmass
+  void showLandmass(Graphics g) {
+    Graphics2D g2 = (Graphics2D)g;
     Color	sea  = new Color(0, 0,  64),
 		land = new Color(64, 128, 0);
     Rectangle	r = g2.getClipBounds();
+//System.out.format("showLandmass %s\n", r);
     g2.setColor(land);
     g2.setBackground(sea);
     g2.clearRect(r.x, r.y, r.width, r.height);
     g2.setTransform(affine);
 
-    if (poly.size() > 0) {
-      Iterator<MapPoly>	it = poly.iterator();
+    Point2D.Double p1 = screen2geo(new Point(r.x, r.y));
+    Point2D.Double p2 = screen2geo(new Point(r.x+r.width, r.y+r.height));
 
-      while (it.hasNext()) {
-	MapPoly	s = it.next();
-	MapPoly	d = convertPoly(s);
-	g2.setColor(s.level % 2 == 1 ? land : sea);
-	if (d.npoints != 0)
-	  g2.fillPolygon(d);
+    for (MapPoly s : poly) {
+      int a1, a2;
+      if (p1 != null && p2 != null) {
+	a1 = abrl(s.gshhsHeader.west, s.gshhsHeader.north, p1, p2);
+	a2 = abrl(s.gshhsHeader.east, s.gshhsHeader.south, p1, p2);
+	if (a1 != a2 || (a1 & a2) == 0) {
+	  MapPoly d = convertPoly(s);
+	  g2.setColor(s.level % 2 == 1 ? land : sea);
+	  if (d.npoints != 0)
+	    g2.fillPolygon(d);
+	}
       }
     }
   }
@@ -773,23 +784,6 @@ class MapPanel extends JPanel {
     return d;
   }
 
-  Point2D.Double projectWinkelTri(double lplam, double lpphi, Point2D.Double out) {
-      double c = 0.5 * lplam;
-      double d = Math.acos(Math.cos(lpphi) * Math.cos(c));
-
-      if (d != 0) {
-	  out.x = 2. * d * Math.cos(lpphi) * Math.sin(c) * (out.y = 1. / Math.sin(d));
-	  out.y *= d * Math.sin(lpphi);
-  } else {
-	  out.x = out.y = 0.0;
-      }
-      out.x = (out.x + lplam * 0.636619772367581343) * 0.5;
-      out.y = (out.y + lpphi) * 0.5;
-      out.x *= 100;
-      out.y *= 100;
-      return out;
-  }
-
   double greatCircleDistance(double lon1, double lat1,
 			     double lon2, double lat2 ) {
     double dlat = Math.sin((lat2-lat1)/2);
@@ -801,25 +795,6 @@ class MapPanel extends JPanel {
   boolean inside(double lon, double lat) {
     return greatCircleDistance(lon, lat,
 	projectionLongitude, projectionLatitude) < mapRadius;
-  }
-
-  double normalizeLongitude(double angle) {
-
-    // avoid instable computations with very small numbers: if the
-    // angle is very close to the graticule boundary, return +/-PI.
-    // Bernhard Jenny, May 25 2010.
-    if (Math.abs(angle - Math.PI) < 1e-15) {
-	return Math.PI;
-    }
-    if (Math.abs(angle + Math.PI) < 1e-15) {
-	return -Math.PI;
-    }
-    
-    while (angle > Math.PI)
-	    angle -= TWOPI;
-    while (angle < -Math.PI)
-	    angle += TWOPI;
-    return angle;
   }
 
   void project(double lam, double phi, Point2D.Double d) {
@@ -837,16 +812,15 @@ class MapPanel extends JPanel {
   }
 
   public void paint(Graphics g) {
-    Graphics2D	g2 = (Graphics2D)g;
-//System.out.println("paint " + g2.getClipBounds());
-    initImage(g2);
-    showTiles(g2);
-    showSelection(g2);
-    showSyncList(g2);
+    showLandmass(g);
+    showTiles(g);
+    showSelection(g);
+    showSyncList(g);
 
     /*
+    Graphics2D	g2 = (Graphics2D)g;
     Dimension	d = getSize(null);
-    initImage(map.createGraphics());
+    showLandmass(map.createGraphics());
     showTiles(grat.createGraphics());
     g.drawImage( map, 0, 0, d.width, d.height, 0, 0, d.width, d.height, this);
     g.drawImage(grat, 0, 0, d.width, d.height, 0, 0, d.width, d.height, this);
