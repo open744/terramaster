@@ -16,15 +16,13 @@ public class MapFrame extends JFrame {
 	    implements ActionListener {
 
 	  public void componentResized(ComponentEvent e) {
-	    Rectangle	d = getContentPane().getBounds(null);
-
 	    tileName.setLocation(   0, 10);
 	    butSync.setLocation(  120, 10);
 	    butDelete.setLocation(220, 10);
 	    butReset.setLocation(340, 0);
 	    butPrefs.setLocation(380, 0);
 	    map.setLocation(0, 40);
-	    map.setSize(d.width, d.height-40);
+	    map.setSize(getWidth(), getHeight()-40);
 	  }
 
 	  public void actionPerformed(ActionEvent e) {
@@ -124,7 +122,7 @@ public class MapFrame extends JFrame {
 
   // invoked from Svn thread
   public void doSvnUpdate(TileName n) {
-    // TODO: paint just one 1x1
+    // XXX: paint just one 1x1
     map.repaint();
   }
 
@@ -137,6 +135,7 @@ class MapPanel extends JPanel {
 
 	private Point2D.Double screen2geo(Point s) {
 	  Point	p = new Point();
+	  s.y += getY();
 
 	  try {
 	  affine.createInverse().transform(s, p);
@@ -172,7 +171,7 @@ class MapPanel extends JPanel {
 	    projectionLatitude = Math.toRadians(-t.getLat());
 	    projectionLongitude = Math.toRadians(t.getLon());
 	    setOrtho();
-	    repaint();
+	    mapFrame.repaint();
 	  }
 
 	  public void mouseWheelMoved(MouseWheelEvent e) {
@@ -180,7 +179,8 @@ class MapPanel extends JPanel {
 	    fromMetres -= n;
 	    pj.setFromMetres(Math.pow(2, fromMetres/4));
 	    pj.initialize();
-	    repaint();
+	    //repaint();
+	    mapFrame.repaint();
 	  }
 	}
 
@@ -206,7 +206,7 @@ class MapPanel extends JPanel {
 
 	  public void mouseReleasedPanning(MouseEvent e) {
 	    if (!e.getPoint().equals(press)) {
-	      repaint();
+	      mapFrame.repaint();
 	    }
 	    press = null;
 	  }
@@ -253,7 +253,7 @@ class MapPanel extends JPanel {
 
 	    mapFrame.butDelete.setEnabled(true);
 
-	    repaint();
+	    mapFrame.repaint();
 	  }
 
 	  public void mouseDragged(MouseEvent e) {
@@ -279,7 +279,7 @@ class MapPanel extends JPanel {
 	    pj.setProjectionLatitude(projectionLatitude);
 	    pj.setProjectionLongitude(projectionLongitude);
 	    pj.initialize();
-	    repaint();
+	    mapFrame.repaint();
 	  }
 
 	  public void mouseDraggedSelection(MouseEvent e) {
@@ -287,7 +287,7 @@ class MapPanel extends JPanel {
 	    if ((e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) == 0)
 	      selectionSet.clear();
 	    boxSelection(screen2geo(press), screen2geo(last));
-	    repaint();
+	    mapFrame.repaint();
 	  }
 
 	  public void mouseClicked(MouseEvent e) {
@@ -334,22 +334,23 @@ class MapPanel extends JPanel {
 	    fromMetres -= n;
 	    pj.setFromMetres(Math.pow(2, fromMetres/4));
 	    pj.initialize();
-	    repaint();
+	    //repaint(new Rectangle(0, 0, getWidth(), getHeight()));
+	    mapFrame.repaint();
 	  }
 	}
 
 	class MPAdapter extends ComponentAdapter {
 	  public void componentResized(ComponentEvent e) {
-	    Rectangle	d = getBounds();
+	    int w = getWidth();
+	    int h = getHeight();
 	    double	r = pj.getEquatorRadius();
-	    // the lesser dimension
-	    int i = (d.height < d.width ? d.height : d.width);
+	    int i = (h < w ? h : w);	// the lesser dimension
 
 	    sc = i / r / 2;
 	    affine = new AffineTransform();
+	    affine.translate(w/2, h/2);
 	    affine.scale(sc, sc);
-	    affine.translate(r, r);	// XXX
-	    repaint();
+	    mapFrame.repaint();
 	  }
 	}
 
@@ -380,15 +381,14 @@ class MapPanel extends JPanel {
     MPAdapter	ad = new MPAdapter();
     addComponentListener(ad);
 
-    //sc = 1600.0 / 36000.0;
     poly = new ArrayList<MapPoly>();
-    map = new BufferedImage(1600, 800, BufferedImage.TYPE_INT_RGB);
-    grat = new BufferedImage(1600, 800, BufferedImage.TYPE_4BYTE_ABGR);
+    //map = new BufferedImage(1600, 800, BufferedImage.TYPE_INT_RGB);
+    //grat = new BufferedImage(1600, 800, BufferedImage.TYPE_4BYTE_ABGR);
 
     //setOrtho();
     setWinkel();
 
-    //setToolTipText("Hover for tile info");
+    setToolTipText("Hover for tile info");
   }
 
   private void setOrtho()
@@ -409,12 +409,13 @@ class MapPanel extends JPanel {
     pj.initialize();
 
     double r = pj.getEquatorRadius();
-    Rectangle d = getBounds(null);
-    int i = (d.height < d.width ? d.height : d.width);
+    int w = getWidth();
+    int h = getHeight();
+    int i = (h < w ? h : w);	// the lesser dimension
     sc = i / r / 2;
     affine = new AffineTransform();
+    affine.translate(w/2, h/2);
     affine.scale(sc, sc);
-    affine.translate(r, r);
 
     removeMouseListener(mousehandler);
     mousehandler = new MouseHandler();
@@ -439,12 +440,13 @@ class MapPanel extends JPanel {
     pj.initialize();
 
     double r = pj.getEquatorRadius();
-    Rectangle d = getBounds(null);
-    int i = (d.height < d.width ? d.height : d.width);
+    int w = getWidth();
+    int h = getHeight();
+    int i = (h < w ? h : w);	// the lesser dimension
     sc = i / r / 2;
     affine = new AffineTransform();
+    affine.translate(w/2, h/2);
     affine.scale(sc, sc);
-    affine.translate(r, r);
 
     removeMouseWheelListener(mousehandler);
     removeMouseListener(mousehandler);
@@ -478,7 +480,6 @@ class MapPanel extends JPanel {
 
   public String getToolTipText(MouseEvent e) {
     Point s = e.getPoint();
-System.out.format("tooltip %d,%d\n", s.x, s.y);
     //return TerraMaster.tilenameManager.getTile(screen2geo(s)).getName();
     String txt = "";
     String str = "";
@@ -527,7 +528,7 @@ System.out.format("tooltip %d,%d\n", s.x, s.y);
 
 
   /*
-    selection stuff (moved from MouseHandler)
+    selection stuff
   */
 
   private boolean selection = false;
@@ -621,7 +622,7 @@ System.out.format("tooltip %d,%d\n", s.x, s.y);
 
     x = -180;
     while (x < 180) {
-      y =  -90;
+      y =  -70;
       while (y < 90) {
 	l = Math.toRadians(x);
 	b = Math.toRadians(y);
@@ -691,7 +692,7 @@ System.out.format("tooltip %d,%d\n", s.x, s.y);
     //g.clearRect(0, 0, 1600, 800);
     g.setTransform(affine);
 
-    g.setColor(grey);
+    //g.setColor(grey);
     g.setColor(Color.gray);
     drawGraticule(g, 10);
 
@@ -716,7 +717,8 @@ System.out.format("tooltip %d,%d\n", s.x, s.y);
 	  else
 	    //g.setColor(amber);
 	    g.setColor(Color.yellow);
-	  g.drawPolygon(poly);		//g.fillPolygon(poly);
+	  g.drawPolygon(poly);
+	  //g.fillPolygon(poly);
 	}
       }
     }
@@ -735,7 +737,8 @@ System.out.format("tooltip %d,%d\n", s.x, s.y);
   }
 
   // draws the landmass
-  void showLandmass(Graphics g) {
+  // filter by rect region
+  void showLandmass_rect(Graphics g) {
     Graphics2D g2 = (Graphics2D)g;
     Color	sea  = new Color(0, 0,  64),
 		land = new Color(64, 128, 0);
@@ -764,6 +767,27 @@ System.out.format("tooltip %d,%d\n", s.x, s.y);
     }
   }
 
+  // draws the landmass
+  // filter by polygon size and zoom
+  void showLandmass(Graphics g) {
+    Graphics2D g2 = (Graphics2D)g;
+    Color	sea  = new Color(0, 0,  64),
+		land = new Color(64, 128, 0);
+    Rectangle	r = g2.getClipBounds();
+    g2.setColor(land);
+    g2.setBackground(sea);
+    g2.clearRect(r.x, r.y, r.width, r.height);
+    g2.setTransform(affine);
+    for (MapPoly s : poly) {
+      if (s.gshhsHeader.n > 20/Math.pow(2, fromMetres/4)) {
+	MapPoly d = convertPoly(s);
+	g2.setColor(s.level % 2 == 1 ? land : sea);
+	if (d.npoints != 0)
+	  g2.fillPolygon(d);
+      }
+    }
+  }
+
   // in: MapPoly
   // out: transformed new MapPoly
   MapPoly convertPoly(MapPoly s) {
@@ -779,6 +803,8 @@ System.out.format("tooltip %d,%d\n", s.x, s.y);
       if (inside(x, y)) {
 	project(x, y, p);
 	d.addPoint((int)p.x, (int)p.y);
+      } else {
+	// XXX
       }
     }
     return d;
@@ -808,14 +834,23 @@ System.out.format("tooltip %d,%d\n", s.x, s.y);
 
   void passPolys(ArrayList<MapPoly> p) {
     poly = p;
-    repaint();
+    mapFrame.repaint();
   }
 
-  public void paint(Graphics g) {
+  public void paintComponent(Graphics g) {
+    super.paintComponent(g);
     showLandmass(g);
     showTiles(g);
     showSelection(g);
     showSyncList(g);
+
+// crosshair
+{Graphics2D g2 = (Graphics2D)g;
+g2.setTransform(new AffineTransform());
+g2.setColor(Color.white);
+g2.drawLine(getWidth()/2-50, getHeight()/2, getWidth()/2+50, getHeight()/2);
+g2.drawLine(getWidth()/2, getHeight()/2-50, getWidth()/2, getHeight()/2+50);
+}
 
     /*
     Graphics2D	g2 = (Graphics2D)g;
