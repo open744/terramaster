@@ -4,6 +4,10 @@
 
 // http://stackoverflow.com/questions/3727662/how-can-you-search-google-programmatically-java-api
 
+// XXX TODO
+// 1. on exit, check if still syncing; close Svn
+// 2. on exit, write Properties
+
 import	java.io.*;
 import	java.awt.*;
 import	java.awt.image.*;
@@ -12,8 +16,8 @@ import	java.util.*;
 import	java.util.regex.*;
 import	javax.swing.*;
 
-public class TerraMaster {
-
+public class TerraMaster
+{
   public static ArrayList<MapPoly>	polys;
 
   static MapFrame	frame;
@@ -25,6 +29,7 @@ public class TerraMaster {
 
   public static TileName tilenameManager;
   public static Svn svn;
+  public static Properties props;
 
   public static void addScnMapTile(Map<TileName, TileData> map,
 				   File i, int type)
@@ -153,11 +158,19 @@ System.out.format("worker.done() ... "); System.out.flush();
 
   void createAndShowGUI()
   {
-    mapScenery = new HashMap<TileName, TileData>();	// empty
+    String geom = props.getProperty("Geometry");
+    Scanner s = new Scanner(geom);
+    s.useDelimiter(Pattern.compile("[x+-]"));
+
+    int w = s.nextInt();
+    int h = s.nextInt();
+    int x = s.nextInt();
+    int y = s.nextInt();
 
     frame = new MapFrame("TerraMaster");
-    frame.setSize(640, 660);
-    frame.setLocationRelativeTo(null);
+    frame.setSize(w, h);
+    frame.setLocation(x, y);
+    //frame.setLocationRelativeTo(null);
     frame.setVisible(true);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -172,6 +185,17 @@ System.out.format("worker.done() ... "); System.out.flush();
     tilenameManager = new TileName();
     svn = new Svn();
     svn.start();	// the Svn thread processes the tile queue
+
+    props = new Properties();
+    try {
+      //props.store(new FileWriter("terramaster.properties"), null);
+      props.load(new FileReader("terramaster.properties"));
+    } catch (IOException e) {
+    }
+
+    String path = props.getProperty("SceneryPath");
+    svn.setScnPath(new File(path));
+    mapScenery = newScnMap(path);
 
     SwingUtilities.invokeLater(new Runnable() {
 	public void run() {
