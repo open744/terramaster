@@ -31,18 +31,18 @@ public class MapFrame extends JFrame {
 	    if (a.equals("SYNC")) {
 	      TerraMaster.svn.sync(map.getSelection());
 	      map.clearSelection();
-	      map.repaint();
+	      repaint();
 	    } else
 
 	    if (a.equals("DELETE")) {
 	      TerraMaster.svn.delete(map.getSelection());
 	      map.clearSelection();
-	      map.repaint();
+	      repaint();
 	    } else
 
 	    if (a.equals("RESET")) {
 	      map.toggleProj();
-	      map.repaint();
+	      repaint();
 	    } else
 
 	    if (a.equals("PREFS")) {
@@ -57,6 +57,7 @@ public class MapFrame extends JFrame {
 		    TerraMaster.newScnMap(f.getPath());
 		repaint();
 		TerraMaster.svn.setScnPath(f);
+		TerraMaster.props.setProperty("SceneryPath", f.getPath());
 		} catch (Exception x) {}
 	      }
 	    }
@@ -71,10 +72,6 @@ public class MapFrame extends JFrame {
 
   public MapFrame(String title) {
     MFAdapter	ad = new MFAdapter();
-
-    // XXX mine
-    TerraMaster.svn.setScnPath(new File("/build/flightgear/2.0/share/FlightGear/Scenery/"));
-    TerraMaster.mapScenery = TerraMaster.newScnMap("/build/flightgear/2.0/share/FlightGear/Scenery/");
 
     this.title = title;
     setTitle(title);
@@ -133,9 +130,10 @@ public class MapFrame extends JFrame {
 
 class MapPanel extends JPanel {
 
-	private Point2D.Double screen2geo(Point s) {
-	  Point	p = new Point();
+	private Point2D.Double screen2geo(Point n) {
+	  Point	s = new Point(n);
 	  s.y += getY();
+	  Point	p = new Point();
 
 	  try {
 	  affine.createInverse().transform(s, p);
@@ -291,9 +289,7 @@ class MapPanel extends JPanel {
 	  }
 
 	  public void mouseClicked(MouseEvent e) {
-	    Dimension	d = getSize(null);	// because of drawImage
-	    Point	s = e.getPoint();
-	    Point2D.Double p2 = screen2geo(s);
+	    Point2D.Double p2 = screen2geo(e.getPoint());
 
 	    TileName tile = TerraMaster.tilenameManager.getTile(p2);
 	    String txt = tile.getName();
@@ -389,6 +385,10 @@ class MapPanel extends JPanel {
     setWinkel();
 
     setToolTipText("Hover for tile info");
+    ToolTipManager tm = ToolTipManager.sharedInstance();
+    tm.setDismissDelay(999999);
+    tm.setInitialDelay(0);
+    tm.setReshowDelay(0);
   }
 
   private void setOrtho()
