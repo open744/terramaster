@@ -15,6 +15,10 @@ public class MapFrame extends JFrame {
 	public class MFAdapter extends ComponentAdapter
 	    implements ActionListener {
 
+	  public void componentMoved(ComponentEvent e) {
+	    updateGeom();
+	  }
+
 	  public void componentResized(ComponentEvent e) {
 	    tileName.setLocation(   0, 10);
 	    butSync.setLocation(  120, 10);
@@ -23,6 +27,7 @@ public class MapFrame extends JFrame {
 	    butPrefs.setLocation(380, 0);
 	    map.setLocation(0, 40);
 	    map.setSize(getWidth(), getHeight()-40);
+	    updateGeom();
 	  }
 
 	  public void actionPerformed(ActionEvent e) {
@@ -71,12 +76,23 @@ public class MapFrame extends JFrame {
   JFileChooser	fc = new JFileChooser();
 
   public MapFrame(String title) {
-    MFAdapter	ad = new MFAdapter();
+    MFAdapter ad = new MFAdapter();
 
     this.title = title;
     setTitle(title);
     setLayout(null);
     getContentPane().addComponentListener(ad);
+
+    addWindowListener(new WindowAdapter() {
+	public void windowClosing(WindowEvent e) {
+	  TerraMaster.svn.quit();
+	  updateGeom();
+	  try {
+	  TerraMaster.props.store(new FileWriter("terramaster.properties"),
+	      null);
+	  } catch (Exception x) { }
+	}
+      });
 
     tileName = new JTextField(8);
     tileName.setBounds(0, 20, 100, 20);
@@ -84,12 +100,13 @@ public class MapFrame extends JFrame {
 
     butSync = new JButton("SYNC");
     butSync.setBounds(0, 80, 100, 20);
+    butSync.setEnabled(false);
     butSync.addActionListener(ad);
     butSync.setActionCommand("SYNC");
     add(butSync);
     butDelete = new JButton("DELETE");
     butDelete.setBounds(0, 100, 100, 20);
-    //butDelete.setEnabled(false);
+    butDelete.setEnabled(false);
     butDelete.addActionListener(ad);
     butDelete.setActionCommand("DELETE");
     add(butDelete);
@@ -110,8 +127,19 @@ public class MapFrame extends JFrame {
     add(map);
 
     map.passFrame(this);
+
+    /*
+    // keyboard accels
+    getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(^S), "SYNC");
+    getActionMap().put("
+    */
   }
 
+  private void updateGeom() {
+    TerraMaster.props.setProperty("Geometry",
+	String.format("%dx%d+%d+%d", getWidth(), getHeight(),
+	getX(), getY()));
+  }
 
   public void passPolys(ArrayList<MapPoly> p) {
     map.passPolys(p);
@@ -200,6 +228,7 @@ class MapPanel extends JPanel {
 	      mouseReleasedSelection(e);
 	      break;
 	    }
+	    enableButtons();
 	  }
 
 	  public void mouseReleasedPanning(MouseEvent e) {
@@ -249,8 +278,6 @@ class MapPanel extends JPanel {
 		selectionSet.remove(n);		// remove on reselect
 	    }
 
-	    mapFrame.butDelete.setEnabled(true);
-
 	    mapFrame.repaint();
 	  }
 
@@ -294,15 +321,8 @@ class MapPanel extends JPanel {
 	    TileName tile = TerraMaster.tilenameManager.getTile(p2);
 	    String txt = tile.getName();
 	    mapFrame.tileName.setText(txt);
-	    if (txt.equals("")) {
-	      txt = "No selection";
-	      mapFrame.butSync.setEnabled(false);
-	    } else
-	      mapFrame.butSync.setEnabled(true);
 
 	    if (p2 == null) return;
-
-	    mapFrame.butDelete.setEnabled(true);
 
 	    /*
 	    // not Ctrl-click, clear previous selection
@@ -372,6 +392,10 @@ class MapPanel extends JPanel {
   final static double EPS10 = 1e-10;
   final static double HALFPI = Math.PI / 2;
   final static double TWOPI = Math.PI*2.0;
+
+  private boolean selection = false;
+  private Collection<TileName> selectionSet = new LinkedHashSet<TileName>();
+  private int[] dragbox;
 
   public MapPanel() {
     MPAdapter	ad = new MPAdapter();
@@ -531,10 +555,6 @@ class MapPanel extends JPanel {
     selection stuff
   */
 
-  private boolean selection = false;
-  private Collection<TileName> selectionSet = new LinkedHashSet<TileName>();
-  private int[] dragbox;
-
   // capture all 1x1 boxes between press and last
   // (to be drawn by paint() later)
   private void boxSelection(Point2D.Double p1,
@@ -605,6 +625,13 @@ class MapPanel extends JPanel {
       Polygon p = box1x1(t.getLon(), t.getLat());
       if (p != null) g.drawPolygon(p);
     }
+  }
+
+  private void enableButtons()
+  {
+    boolean b = selectionSet.size() > 0 ? true : false;
+    mapFrame.butSync.setEnabled(b);
+    mapFrame.butDelete.setEnabled(b);
   }
 
 

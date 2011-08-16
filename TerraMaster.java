@@ -6,7 +6,9 @@
 
 // XXX TODO
 // 1. on exit, check if still syncing; close Svn
-// 2. on exit, write Properties
+// 2. on exit, write Properties DONE
+// 3. keyboard actions
+// 4. double-click for priority sync
 
 import	java.io.*;
 import	java.awt.*;
@@ -167,6 +169,10 @@ System.out.format("worker.done() ... "); System.out.flush();
     int x = s.nextInt();
     int y = s.nextInt();
 
+    String path = props.getProperty("SceneryPath");
+    svn.setScnPath(new File(path));
+    mapScenery = newScnMap(path);
+
     frame = new MapFrame("TerraMaster");
     frame.setSize(w, h);
     frame.setLocation(x, y);
@@ -176,7 +182,7 @@ System.out.format("worker.done() ... "); System.out.flush();
 
     worker.execute();
 
-    frame.repaint();
+    //frame.repaint();
 
   }
 
@@ -188,14 +194,9 @@ System.out.format("worker.done() ... "); System.out.flush();
 
     props = new Properties();
     try {
-      //props.store(new FileWriter("terramaster.properties"), null);
       props.load(new FileReader("terramaster.properties"));
     } catch (IOException e) {
     }
-
-    String path = props.getProperty("SceneryPath");
-    svn.setScnPath(new File(path));
-    mapScenery = newScnMap(path);
 
     SwingUtilities.invokeLater(new Runnable() {
 	public void run() {
