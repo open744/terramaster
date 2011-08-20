@@ -1,7 +1,18 @@
 #summary A GUI for managing FlightGear scenery collections.
 
-Building.
+==Installing==
 
-Running.
+Grab the latest zip file from the 'Downloads' link.
 
-Attributions.
+Unzip all files into a folder.
+
+==Running==
+
+You need to have Java 6 installed on your system.
+
+Start TerraMaster using a shortcut that uses the commandline:
+  java -jar terramaster.jar
+
+==Discuss==
+
+Come to the [http://flightgear.org/forums/viewtopic.php?f=5&t=12050 FG forum thread] for help.
