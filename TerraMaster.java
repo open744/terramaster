@@ -20,7 +20,7 @@ import	javax.swing.*;
 
 public class TerraMaster
 {
-  public static ArrayList<MapPoly>	polys;
+  public static ArrayList<MapPoly>	polys, borders;
 
   static MapFrame	frame;
   public GshhsHeader	gshhsHeader;
@@ -117,46 +117,28 @@ public class TerraMaster
   }
 
   // reads in GSHHS and builds ArrayList of polys
-  SwingWorker	worker = new SwingWorker<ArrayList<MapPoly>, Void>() {
-      public ArrayList<MapPoly> doInBackground() {
 
-	ArrayList<MapPoly>	poly = new ArrayList<MapPoly>();
-	String			filename = "gshhs_l.b";
+  ArrayList<MapPoly> newPolyList(String filename) {
 
-	try {
-	  DataInput	s = new DataInputStream(new
-	      FileInputStream(new File(filename)));
+    ArrayList<MapPoly> poly = new ArrayList<MapPoly>();
 
-	  int n = 0;
-	  do {
-	    GshhsHeader	h = new GshhsHeader();
-	    n = readGshhsHeader(s, h);
-	    if (n > 0) poly.add(new MapPoly(s, h));
-	  } while (n > 0);
-	} catch (Exception e) {
-	  System.out.println(filename + ": " + e);
-	  System.exit(-1);
-	}
+    try {
+      DataInput s = new DataInputStream(
+		new FileInputStream(filename));
+      int n = 0;
+      do {
+	GshhsHeader	h = new GshhsHeader();
+	n = readGshhsHeader(s, h);
+	if (n > 0) poly.add(new MapPoly(s, h));
+      } while (n > 0);
+    } catch (Exception e) {
+      System.out.println(filename + ": " + e);
+      System.exit(-1);
+    }
 
-	return poly;
-      }
-
-      public void done() {
-	// called by Event Disp thread
-	// waits for worker to finish
-System.out.format("worker.done() ... "); System.out.flush();
-	try {
-	  while (!isDone())
-	    Thread.sleep(100);
-	  polys = get();
-	  System.out.format("%d polys\n", polys.size());
-	  frame.passPolys(polys);
-	} catch (Exception e) {
-	  System.out.println(e);
-	}
-      }
-
-  };
+    //System.out.format("%s: %d polys\n", filename, poly.size());
+    return poly;
+  }
 
   void createAndShowGUI()
   {
@@ -180,10 +162,16 @@ System.out.format("worker.done() ... "); System.out.flush();
     frame.setVisible(true);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-    worker.execute();
-
-    //frame.repaint();
-
+    /*
+    worker_polys = new Worker<ArrayList<MapPoly>, Void>("gshhs_l.b");
+    worker_polys.execute();
+    worker_borders = new Worker<ArrayList<MapPoly>, Void>("wdb_borders_l.b");
+    worker_borders.execute();
+    */
+    polys = newPolyList("gshhs_l.b");
+    borders = newPolyList("wdb_borders_l.b");
+    frame.passPolys(polys);
+    frame.passBorders(borders);
   }
 
   public static void main(String args[]) {

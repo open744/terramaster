@@ -143,12 +143,18 @@ public class MapFrame extends JFrame {
 
   public void passPolys(ArrayList<MapPoly> p) {
     map.passPolys(p);
+    repaint();
+  }
+
+  public void passBorders(ArrayList<MapPoly> p) {
+    map.passBorders(p);
+    repaint();
   }
 
   // invoked from Svn thread
   public void doSvnUpdate(TileName n) {
     // XXX: paint just one 1x1
-    map.repaint();
+    repaint();
   }
 
 }
@@ -323,29 +329,9 @@ class MapPanel extends JPanel {
 	    mapFrame.tileName.setText(txt);
 
 	    if (p2 == null) return;
-
-	    /*
-	    // not Ctrl-click, clear previous selection
-	    if ((e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) == 0)
-	      selectionSet.clear();
-	    selectionSet.add(tile);
-	    selection = true;
-	    repaint();
-	    */
 	  }
 
 	  public void mouseWheelMoved(MouseWheelEvent e) {
-	    /*
-	    // recentre
-	    Point2D.Double d2 = screen2geo(e.getPoint());
-	    if (d2 != null) {
-	      projectionLatitude = Math.toRadians(d2.y);
-	      projectionLongitude = Math.toRadians(d2.x);
-	      pj.setProjectionLatitude(projectionLatitude);
-	      pj.setProjectionLongitude(projectionLongitude);
-	    }
-	    */
-
 	    int	n = e.getWheelRotation();
 	    fromMetres -= n;
 	    pj.setFromMetres(Math.pow(2, fromMetres/4));
@@ -370,7 +356,8 @@ class MapPanel extends JPanel {
 	  }
 	}
 
-  private ArrayList<MapPoly>	poly;
+  private ArrayList<MapPoly> poly;		// continents
+  private ArrayList<MapPoly> borders;		// borders
   BufferedImage		map, grat;
   double		sc;
   MapFrame		mapFrame;
@@ -683,12 +670,13 @@ class MapPanel extends JPanel {
     double	l, r, t, b;
     int		x4[] = new int[4],
 		y4[] = new int[4];
-    Point2D.Double	p = new Point2D.Double();
+    Point2D.Double p = new Point2D.Double();
 
+    double inc = 1 - (fromMetres < 16 ? 0.02 : 0.01);
     l = Math.toRadians( x);
     b = Math.toRadians(-y);
-    r = Math.toRadians((double) x + 1);
-    t = Math.toRadians((double)-y - 1);
+    r = Math.toRadians((double) x + inc);
+    t = Math.toRadians((double)-y - inc);
 
     if (!inside(l, b))
       return null;
@@ -799,7 +787,8 @@ class MapPanel extends JPanel {
   void showLandmass(Graphics g) {
     Graphics2D g2 = (Graphics2D)g;
     Color	sea  = new Color(0, 0,  64),
-		land = new Color(64, 128, 0);
+		land = new Color(64, 128, 0),
+		border = new Color(128, 192, 128);
     Rectangle	r = g2.getClipBounds();
     g2.setColor(land);
     g2.setBackground(sea);
@@ -812,6 +801,15 @@ class MapPanel extends JPanel {
 	if (d.npoints != 0)
 	  g2.fillPolygon(d);
       }
+    }
+    // borders
+    g2.setColor(border);
+    for (MapPoly s : borders) {
+      int[] xp = new int[s.npoints],
+	    yp = new int[s.npoints];
+      int n = convertPolyline(s, xp, yp);
+      if (n != 0)
+	g2.drawPolyline(xp, yp, n);
     }
   }
 
@@ -835,6 +833,29 @@ class MapPanel extends JPanel {
       }
     }
     return d;
+  }
+
+  // in: MapPoly
+  // out: npoints
+  int convertPolyline(MapPoly s, int[] xpoints, int[] ypoints) {
+    Point2D.Double p = new Point2D.Double();
+
+    int i, j = 0;
+    for (i = 0; i < s.npoints; ++i) {
+      double	x = s.xpoints[i],
+		y = s.ypoints[i];
+      x = Math.toRadians(x / 100.0);
+      y = Math.toRadians(y / 100.0);
+      if (inside(x, y)) {
+	project(x, y, p);
+	xpoints[j] = (int)p.x;
+	ypoints[j] = (int)p.y;
+	++j;
+      } else {
+	// XXX
+      }
+    }
+    return j;
   }
 
   double greatCircleDistance(double lon1, double lat1,
@@ -861,7 +882,10 @@ class MapPanel extends JPanel {
 
   void passPolys(ArrayList<MapPoly> p) {
     poly = p;
-    mapFrame.repaint();
+  }
+
+  void passBorders(ArrayList<MapPoly> p) {
+    borders = p;
   }
 
   public void paintComponent(Graphics g) {
