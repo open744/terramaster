@@ -1,7 +1,7 @@
 CLASSPATH=-classpath javaproj-1.0.6.jar:svnkit.jar:.
 
-all: TerraMaster.class MapPoly.class MapFrame.class GshhsHeader.class TileData.class Svn.class TileName.class
-	jar cfm terramaster.jar manifest *.class
+all: TerraMaster.class MapPoly.class MapFrame.class GshhsHeader.class TileData.class Svn.class TileName.class FGMap.class Airport.class WebWorker.class
+	jar cfm terramaster.jar manifest *.class gshhs_l.b wdb_borders_l.b
 
 TerraMaster.class: TerraMaster.java
 	javac ${CLASSPATH} TerraMaster.java
@@ -23,3 +23,12 @@ TileName.class: TileName.java
 
 Svn.class: Svn.java
 	javac ${CLASSPATH} Svn.java
+
+FGMap.class: FGMap.java
+	javac ${CLASSPATH} FGMap.java
+
+Airport.class: Airport.java
+	javac ${CLASSPATH} Airport.java
+
+WebWorker.class: WebWorker.java
+	javac ${CLASSPATH} WebWorker.java

@@ -31,6 +31,7 @@ public class TerraMaster
 
   public static TileName tilenameManager;
   public static Svn svn;
+  public static FGMap fgmap;
   public static Properties props;
 
   public static void addScnMapTile(Map<TileName, TileData> map,
@@ -124,7 +125,8 @@ public class TerraMaster
 
     try {
       DataInput s = new DataInputStream(
-		new FileInputStream(filename));
+		//new FileInputStream(filename));
+		getClass().getClassLoader().getResourceAsStream(filename));
       int n = 0;
       do {
 	GshhsHeader	h = new GshhsHeader();
@@ -142,6 +144,10 @@ public class TerraMaster
 
   void createAndShowGUI()
   {
+    // find our jar
+    java.net.URL url = getClass().getClassLoader().getResource("gshhs_l.b");
+    System.err.printf("getResource: " + url);
+
     String geom = props.getProperty("Geometry");
     Scanner s = new Scanner(geom);
     s.useDelimiter(Pattern.compile("[x+-]"));
@@ -179,6 +185,8 @@ public class TerraMaster
     tilenameManager = new TileName();
     svn = new Svn();
     svn.start();	// the Svn thread processes the tile queue
+
+    fgmap = new FGMap();	// handles webqueries
 
     props = new Properties();
     try {

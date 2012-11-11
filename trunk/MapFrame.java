@@ -12,6 +12,7 @@ import	com.jhlabs.map.proj.*;
 
 public class MapFrame extends JFrame {
 
+	// this Adapter is used by the child elements
 	public class MFAdapter extends ComponentAdapter
 	    implements ActionListener {
 
@@ -20,11 +21,13 @@ public class MapFrame extends JFrame {
 	  }
 
 	  public void componentResized(ComponentEvent e) {
-	    tileName.setLocation(   0, 10);
-	    butSync.setLocation(  120, 10);
-	    butDelete.setLocation(220, 10);
-	    butReset.setLocation(340, 0);
-	    butPrefs.setLocation(380, 0);
+	    tileName.setLocation( 10, 10);
+	    butSync.setLocation(  90, 0);
+	    butDelete.setLocation(130, 0);
+	    butSearch.setLocation(170, 0);
+	    butReset.setLocation(210, 0);
+	    butPrefs.setLocation(250, 0);
+	    searchBar.setLocation(300, 10);
 	    map.setLocation(0, 40);
 	    map.setSize(getWidth(), getHeight()-40);
 	    updateGeom();
@@ -66,13 +69,25 @@ public class MapFrame extends JFrame {
 		} catch (Exception x) {}
 	      }
 	    }
+
+	    if (a.equals("SEARCH")) {
+	      String str = searchBar.getText();
+	      new WebWorker(str).execute();
+	    }
+
+	    if (a.equals("BROWSE")) {
+	      Collection<TileName> sel = map.getSelection();
+	      new WebWorker(sel).execute();
+	    }
+
 	  }
 	}
 
   String	title;
   MapPanel	map;
-  JTextField	tileName;
-  JButton	butSync, butDelete, butReset, butPrefs;
+  JTextField	searchBar;
+  JLabel	tileName;
+  JButton	butSync, butDelete, butReset, butPrefs, butSearch;
   JFileChooser	fc = new JFileChooser();
 
   public MapFrame(String title) {
@@ -94,34 +109,49 @@ public class MapFrame extends JFrame {
 	}
       });
 
-    tileName = new JTextField(8);
-    tileName.setBounds(0, 20, 100, 20);
+    tileName = new JLabel();
+    tileName.setBounds(0, 0, 60, 20);
+    tileName.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
     add(tileName);
 
-    butSync = new JButton("SYNC");
-    butSync.setBounds(0, 80, 100, 20);
+    butSync = new JButton(new ImageIcon("Sync.png"));
+    butSync.setBounds(0, 0, 40, 40);
     butSync.setEnabled(false);
     butSync.addActionListener(ad);
     butSync.setActionCommand("SYNC");
     add(butSync);
-    butDelete = new JButton("DELETE");
-    butDelete.setBounds(0, 100, 100, 20);
+
+    butDelete = new JButton(new ImageIcon("Delete.png"));
+    butDelete.setBounds(0, 0, 40, 40);
     butDelete.setEnabled(false);
     butDelete.addActionListener(ad);
     butDelete.setActionCommand("DELETE");
     add(butDelete);
 
-    butReset = new JButton(new ImageIcon("globe.png"));
-    butReset.setBounds(0, 400,  40, 40);
+    butSearch = new JButton(new ImageIcon("Find.png"));
+    butSearch.setBounds(0, 0,  40, 40);
+    butSearch.setEnabled(false);
+    butSearch.addActionListener(ad);
+    butSearch.setActionCommand("BROWSE");
+    add(butSearch);
+
+    butReset = new JButton(new ImageIcon("Earth.png"));
+    butReset.setBounds(0, 0,  40, 40);
     butReset.addActionListener(ad);
     butReset.setActionCommand("RESET");
     add(butReset);
 
-    butPrefs = new JButton(new ImageIcon("prefs.png"));
-    butPrefs.setBounds(0, 400,  40, 40);
+    butPrefs = new JButton(new ImageIcon("Application.png"));
+    butPrefs.setBounds(0, 0,  40, 40);
     butPrefs.addActionListener(ad);
     butPrefs.setActionCommand("PREFS");
     add(butPrefs);
+
+    searchBar = new JTextField();
+    searchBar.setBounds(0, 0, 80, 20);
+    searchBar.addActionListener(ad);
+    searchBar.setActionCommand("SEARCH");
+    add(searchBar);
 
     map = new MapPanel();
     add(map);
@@ -180,7 +210,7 @@ class MapPanel extends JPanel {
 	  }
 	}
 
-	class SortPoint extends Object implements Comparable<SortPoint> {
+	class SortPoint implements Comparable<SortPoint> {
 	  Point		p;
 	  long		d;
 
@@ -589,6 +619,7 @@ class MapPanel extends JPanel {
     if (mapFrame != null) {
       mapFrame.butSync.setEnabled(false);
       mapFrame.butDelete.setEnabled(false);
+      mapFrame.butSearch.setEnabled(false);
     }
   }
 
@@ -619,6 +650,7 @@ class MapPanel extends JPanel {
     boolean b = selectionSet.size() > 0 ? true : false;
     mapFrame.butSync.setEnabled(b);
     mapFrame.butDelete.setEnabled(b);
+    mapFrame.butSearch.setEnabled(b);
   }
 
 
@@ -705,7 +737,7 @@ class MapPanel extends JPanel {
 
     g.setBackground(bg);
     //g.clearRect(0, 0, 1600, 800);
-    g.setTransform(affine);
+    //g.setTransform(affine);
 
     //g.setColor(grey);
     g.setColor(Color.gray);
@@ -739,6 +771,33 @@ class MapPanel extends JPanel {
     }
   }
 
+  void showAirports(Graphics g0)
+  {
+    Graphics2D g = (Graphics2D)g0.create();
+    HashMap<String, Airport> apts = TerraMaster.fgmap.getAirportList();
+    Point2D.Double p = new Point2D.Double();
+    Point p2 = new Point();
+
+    g.setColor(Color.white);
+    g.setBackground(Color.white);
+    g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+    g.setTransform(new AffineTransform());		// restore identity
+
+    // we perform manual transform for shape drawing
+    // (because text transformation is screwed up)
+
+    for (Airport a : apts.values()) {
+      double x = Math.toRadians(a.lon);
+      double y = Math.toRadians(-a.lat);
+      if (inside(x, y)) {
+	project(x, y, p);
+	affine.transform(p, p2);
+	g.drawOval(p2.x-8, p2.y-8, 16, 16);
+	g.drawString(a.code, p2.x-12, p2.y+12);
+      }
+    }
+  }
+
   int abrl(int west, int north, Point2D p1, Point2D p2)
   {
     int a = 0;
@@ -758,7 +817,7 @@ class MapPanel extends JPanel {
     Color	sea  = new Color(0, 0,  64),
 		land = new Color(64, 128, 0);
     Rectangle	r = g2.getClipBounds();
-//System.out.format("showLandmass %s\n", r);
+
     g2.setColor(land);
     g2.setBackground(sea);
     g2.clearRect(r.x, r.y, r.width, r.height);
@@ -790,6 +849,7 @@ class MapPanel extends JPanel {
 		land = new Color(64, 128, 0),
 		border = new Color(128, 192, 128);
     Rectangle	r = g2.getClipBounds();
+
     g2.setColor(land);
     g2.setBackground(sea);
     g2.clearRect(r.x, r.y, r.width, r.height);
@@ -894,14 +954,15 @@ class MapPanel extends JPanel {
     showTiles(g);
     showSelection(g);
     showSyncList(g);
+    showAirports(g);
 
-// crosshair
-{Graphics2D g2 = (Graphics2D)g;
-g2.setTransform(new AffineTransform());
-g2.setColor(Color.white);
-g2.drawLine(getWidth()/2-50, getHeight()/2, getWidth()/2+50, getHeight()/2);
-g2.drawLine(getWidth()/2, getHeight()/2-50, getWidth()/2, getHeight()/2+50);
-}
+    // crosshair
+    {Graphics2D g2 = (Graphics2D)g;
+    g2.setTransform(new AffineTransform());
+    g2.setColor(Color.white);
+    g2.drawLine(getWidth()/2-50, getHeight()/2, getWidth()/2+50, getHeight()/2);
+    g2.drawLine(getWidth()/2, getHeight()/2-50, getWidth()/2, getHeight()/2+50);
+    }
 
     /*
     Graphics2D	g2 = (Graphics2D)g;
