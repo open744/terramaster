@@ -11,7 +11,7 @@ I use version 1.0.6 with no complaints.
 SVNKit - Subversion for Java
 http://svnkit.com/download.php
 
-I use version 1.3.5 (Standalone, without JNA), which is found at [http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.nojna.zip this link]. You only need the "svnkit.jar" file.
+I use version 1.3.8 (Standalone, without JNA), which is found at [http://www.svnkit.com/org.tmatesoft.svn_1.3.8.standalone.nojna.zip this link]. You only need the "svnkit.jar" file.
 
 = Details =
 
