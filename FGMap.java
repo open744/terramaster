@@ -80,7 +80,7 @@ public class FGMap
 
   public List<Airport> search(String str)
   {
-    String url = String.format("http://mpmap01.flightgear.org/fg_nav_xml_proxy.cgi?sstr=%s&apt_code", str);
+    String url = String.format("http://mpmap01.flightgear.org/fg_nav_xml_proxy.cgi?sstr=%s&apt_code&apt_name", str);
 
     try {
       return webquery(new URL(url));
@@ -116,6 +116,11 @@ public class FGMap
   public HashMap<String, Airport> getAirportList()
   {
     return map;
+  }
+
+  public void clearAirports()
+  {
+    map.clear();
   }
 }
 
