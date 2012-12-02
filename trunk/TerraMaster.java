@@ -146,7 +146,7 @@ public class TerraMaster
   {
     // find our jar
     java.net.URL url = getClass().getClassLoader().getResource("gshhs_l.b");
-    System.err.printf("getResource: " + url);
+    System.err.println("getResource: " + url);
 
     String geom = props.getProperty("Geometry");
     Scanner s = new Scanner(geom);

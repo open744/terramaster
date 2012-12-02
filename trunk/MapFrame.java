@@ -21,13 +21,17 @@ public class MapFrame extends JFrame {
 	  }
 
 	  public void componentResized(ComponentEvent e) {
-	    tileName.setLocation( 10, 10);
-	    butSync.setLocation(  90, 0);
-	    butDelete.setLocation(130, 0);
-	    butSearch.setLocation(170, 0);
-	    butReset.setLocation(210, 0);
-	    butPrefs.setLocation(250, 0);
-	    searchBar.setLocation(300, 10);
+	    tileName.setLocation( 20, 10);
+	    butSync.setLocation(  90-1, 7);
+	    butDelete.setLocation(115-1, 7);
+	    butSearch.setLocation(140-1, 7);
+	    butStop.setLocation(165-1, 7);
+	    butClear.setLocation(200-1, 7);
+	    butReset.setLocation(225-1, 7);
+	    butPrefs.setLocation(250-1, 7);
+	    search.setLocation(280, 10);
+	    searchBar.setLocation(325, 10);
+	    progressBar.setLocation(450, 9);
 	    map.setLocation(0, 40);
 	    map.setSize(getWidth(), getHeight()-40);
 	    updateGeom();
@@ -37,7 +41,11 @@ public class MapFrame extends JFrame {
 	    String	a = e.getActionCommand();
 
 	    if (a.equals("SYNC")) {
-	      TerraMaster.svn.sync(map.getSelection());
+	      Collection<TileName> set = map.getSelection();
+	      TerraMaster.svn.sync(set);
+	      progressBar.setMaximum(progressBar.getMaximum() + set.size() * 2);
+	      progressBar.setVisible(true);
+	      butStop.setEnabled(true);
 	      map.clearSelection();
 	      repaint();
 	    } else
@@ -50,6 +58,17 @@ public class MapFrame extends JFrame {
 
 	    if (a.equals("RESET")) {
 	      map.toggleProj();
+	      //map.clearSelection();
+	      repaint();
+	    } else
+
+	    if (a.equals("STOP")) {
+	      TerraMaster.svn.cancel();
+	      //repaint();
+	    } else
+
+	    if (a.equals("CLEAR")) {
+	      TerraMaster.fgmap.clearAirports();
 	      repaint();
 	    } else
 
@@ -86,9 +105,10 @@ public class MapFrame extends JFrame {
   String	title;
   MapPanel	map;
   JTextField	searchBar;
-  JLabel	tileName;
-  JButton	butSync, butDelete, butReset, butPrefs, butSearch;
+  JLabel	tileName, search;
+  JButton	butSync, butDelete, butStop, butReset, butClear, butPrefs, butSearch;
   JFileChooser	fc = new JFileChooser();
+  JProgressBar	progressBar;
 
   public MapFrame(String title) {
     MFAdapter ad = new MFAdapter();
@@ -115,43 +135,75 @@ public class MapFrame extends JFrame {
     add(tileName);
 
     butSync = new JButton(new ImageIcon("Sync.png"));
-    butSync.setBounds(0, 0, 40, 40);
+    butSync.setBounds(0, 0, 26, 26);
     butSync.setEnabled(false);
     butSync.addActionListener(ad);
     butSync.setActionCommand("SYNC");
+    butSync.setToolTipText("Synchronise selected tiles");
     add(butSync);
 
-    butDelete = new JButton(new ImageIcon("Delete.png"));
-    butDelete.setBounds(0, 0, 40, 40);
+    butDelete = new JButton(new ImageIcon("Trash.png"));
+    butDelete.setBounds(0, 0, 26, 26);
     butDelete.setEnabled(false);
     butDelete.addActionListener(ad);
     butDelete.setActionCommand("DELETE");
+    butDelete.setToolTipText("Delete selected tiles from disk");
     add(butDelete);
 
-    butSearch = new JButton(new ImageIcon("Find.png"));
-    butSearch.setBounds(0, 0,  40, 40);
+    butSearch = new JButton(new ImageIcon("Eye.png"));
+    butSearch.setBounds(0, 0,  26, 26);
     butSearch.setEnabled(false);
     butSearch.addActionListener(ad);
     butSearch.setActionCommand("BROWSE");
+    butSearch.setToolTipText("Show airports within selected tiles");
     add(butSearch);
 
-    butReset = new JButton(new ImageIcon("Earth.png"));
-    butReset.setBounds(0, 0,  40, 40);
+    butStop = new JButton(new ImageIcon("Stop sign.png"));
+    butStop.setBounds(0, 0, 26, 26);
+    butStop.setEnabled(false);
+    butStop.addActionListener(ad);
+    butStop.setActionCommand("STOP");
+    butStop.setToolTipText("Stop all queued syncs");
+    add(butStop);
+
+    butClear = new JButton(new ImageIcon("New document.png"));
+    butClear.setBounds(0, 0,  26, 26);
+    butClear.addActionListener(ad);
+    butClear.setActionCommand("CLEAR");
+    butClear.setToolTipText("Clear all airports from map");
+    add(butClear);
+
+    butReset = new JButton(new ImageIcon("Globe.png"));
+    butReset.setBounds(0, 0,  26, 26);
     butReset.addActionListener(ad);
     butReset.setActionCommand("RESET");
+    butReset.setToolTipText("Toggle between projections");
     add(butReset);
 
     butPrefs = new JButton(new ImageIcon("Application.png"));
-    butPrefs.setBounds(0, 0,  40, 40);
+    butPrefs.setBounds(0, 0,  26, 26);
     butPrefs.addActionListener(ad);
     butPrefs.setActionCommand("PREFS");
+    butPrefs.setToolTipText("Select scenery folder");
     add(butPrefs);
+
+    search = new JLabel("Search:");
+    search.setBounds(0, 0, 60, 20);
+    search.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+    add(search);
 
     searchBar = new JTextField();
     searchBar.setBounds(0, 0, 80, 20);
     searchBar.addActionListener(ad);
     searchBar.setActionCommand("SEARCH");
+    searchBar.setToolTipText("Search for airport by name or code");
     add(searchBar);
+
+    progressBar = new JProgressBar();
+    progressBar.setBounds(0, 0, 120, 20);
+    progressBar.setVisible(false);
+    progressBar.setMaximum(0);
+    add(progressBar);
 
     map = new MapPanel();
     add(map);
@@ -184,6 +236,12 @@ public class MapFrame extends JFrame {
   // invoked from Svn thread
   public void doSvnUpdate(TileName n) {
     // XXX: paint just one 1x1
+    repaint();
+  }
+
+  // called from Svn thread
+  public void progressUpdate(int n) {
+    progressBar.setValue(progressBar.getValue()+n);
     repaint();
   }
 
@@ -789,11 +847,13 @@ class MapPanel extends JPanel {
     for (Airport a : apts.values()) {
       double x = Math.toRadians(a.lon);
       double y = Math.toRadians(-a.lat);
+      int n = (int)fromMetres*2 - 16;		// the circle size changes with zoom
+      if (n < 2) n = 2;
       if (inside(x, y)) {
 	project(x, y, p);
 	affine.transform(p, p2);
-	g.drawOval(p2.x-8, p2.y-8, 16, 16);
-	g.drawString(a.code, p2.x-12, p2.y+12);
+	g.drawOval(p2.x-n/2, p2.y-n/2, n, n);
+	g.drawString(a.code, p2.x-12, p2.y+n);
       }
     }
   }
