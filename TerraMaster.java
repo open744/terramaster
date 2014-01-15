@@ -156,21 +156,29 @@ public class TerraMaster
     System.err.println("getResource: " + url);
 
     String geom = props.getProperty("Geometry");
-    Pattern pattern = Pattern.compile("([0-9]*)x([0-9]*)([+-][0-9]*)([+-][0-9]*)");
-    Matcher matcher = pattern.matcher(geom);
     int w = 800;
     int h= 600;
     int x = 0;
     int y = 0;
-    if (matcher.find()) {
-      w = Integer.parseInt(matcher.group(1));
-      h = Integer.parseInt(matcher.group(2));
-      x = Integer.parseInt(matcher.group(3));
-      y = Integer.parseInt(matcher.group(4));
+    Pattern pattern = Pattern.compile("([0-9]*)x([0-9]*)([+-][0-9]*)([+-][0-9]*)");
+    if (geom != null) {
+      Matcher matcher = pattern.matcher(geom);
+      if (matcher.find()) {
+        w = Integer.parseInt(matcher.group(1));
+        h = Integer.parseInt(matcher.group(2));
+        x = Integer.parseInt(matcher.group(3));
+        y = Integer.parseInt(matcher.group(4));
+      }
     }
     String path = props.getProperty("SceneryPath");
-    svn.setScnPath(new File(path));
-    mapScenery = newScnMap(path);
+    if (path != null) {
+      svn.setScnPath(new File(path));
+      mapScenery = newScnMap(path);
+    }
+    else
+    {
+      mapScenery = new HashMap<TileName, TileData>();
+    }
 
     frame = new MapFrame("TerraMaster");
     frame.setSize(w, h);

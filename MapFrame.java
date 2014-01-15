@@ -31,9 +31,12 @@ import java.util.regex.Pattern;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
@@ -69,6 +72,7 @@ public class MapFrame extends JFrame {
 	    map.setSize(getWidth(), getHeight()-40);
 	    updateGeom();
 	  }
+	  
 
 	  public void actionPerformed(ActionEvent e) {
 	    String	a = e.getActionCommand();
@@ -277,6 +281,15 @@ public class MapFrame extends JFrame {
     progressBar.setValue(progressBar.getValue()+n);
     repaint();
   }
+  
+  @Override
+  public void setVisible(boolean b) {
+    super.setVisible(b);
+    if(b && (TerraMaster.mapScenery == null || TerraMaster.mapScenery.isEmpty() ) )
+    {
+      JOptionPane.showMessageDialog(this, "TerraGear path not found or no scenery found", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+  }
 
 }
 
@@ -287,7 +300,7 @@ class MapPanel extends JPanel {
 
 	private Point2D.Double screen2geo(Point n) {
 	  Point	s = new Point(n);
-	  s.y += getY();
+//	  s.y += getY();
 	  Point	p = new Point();
 
 	  try {
@@ -958,12 +971,15 @@ class MapPanel extends JPanel {
     }
     // borders
     g2.setColor(border);
+    if(borders!=null)
+    {
     for (MapPoly s : borders) {
       int[] xp = new int[s.npoints],
 	    yp = new int[s.npoints];
       int n = convertPolyline(s, xp, yp);
       if (n != 0)
 	g2.drawPolyline(xp, yp, n);
+    }
     }
   }
 
