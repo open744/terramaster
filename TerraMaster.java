@@ -10,13 +10,20 @@
 // 3. keyboard actions
 // 4. double-click for priority sync
 
-import	java.io.*;
-import	java.awt.*;
-import	java.awt.image.*;
-import	java.awt.geom.*;
-import	java.util.*;
-import	java.util.regex.*;
-import	javax.swing.*;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 
 public class TerraMaster
 {
@@ -149,14 +156,18 @@ public class TerraMaster
     System.err.println("getResource: " + url);
 
     String geom = props.getProperty("Geometry");
-    Scanner s = new Scanner(geom);
-    s.useDelimiter(Pattern.compile("[x+-]"));
-
-    int w = s.nextInt();
-    int h = s.nextInt();
-    int x = s.nextInt();
-    int y = s.nextInt();
-
+    Pattern pattern = Pattern.compile("([0-9]*)x([0-9]*)([+-][0-9]*)([+-][0-9]*)");
+    Matcher matcher = pattern.matcher(geom);
+    int w = 800;
+    int h= 600;
+    int x = 0;
+    int y = 0;
+    if (matcher.find()) {
+      w = Integer.parseInt(matcher.group(1));
+      h = Integer.parseInt(matcher.group(2));
+      x = Integer.parseInt(matcher.group(3));
+      y = Integer.parseInt(matcher.group(4));
+    }
     String path = props.getProperty("SceneryPath");
     svn.setScnPath(new File(path));
     mapScenery = newScnMap(path);

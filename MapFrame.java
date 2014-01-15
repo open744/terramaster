@@ -252,7 +252,7 @@ public class MapFrame extends JFrame {
 
   private void updateGeom() {
     TerraMaster.props.setProperty("Geometry",
-	String.format("%dx%d+%d+%d", getWidth(), getHeight(),
+	String.format("%dx%d%+d%+d", getWidth(), getHeight(),
 	getX(), getY()));
   }
 
