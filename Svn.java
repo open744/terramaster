@@ -2,7 +2,7 @@ import	java.util.*;
 import	java.io.File;
 import	javax.swing.SwingUtilities;
 import	org.tmatesoft.svn.core.wc.*;
-import	org.tmatesoft.svn.core.ISVNCanceller;;
+import	org.tmatesoft.svn.core.ISVNCanceller;
 import	org.tmatesoft.svn.core.ISVNDirEntryHandler;
 import	org.tmatesoft.svn.core.SVNDirEntry;
 import	org.tmatesoft.svn.core.SVNException;
