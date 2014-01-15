@@ -1,14 +1,47 @@
-import	java.io.*;
-import	java.awt.*;
-import	java.awt.image.*;
-import	java.awt.geom.*;
-import	java.util.*;
-import	java.util.regex.*;
-import	javax.swing.*;
-import	javax.swing.border.*;
-import	java.awt.event.*;
-import	javax.swing.event.*;
-import	com.jhlabs.map.proj.*;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Polygon;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JTextField;
+import javax.swing.ToolTipManager;
+
+import com.jhlabs.map.proj.OrthographicAzimuthalProjection;
+import com.jhlabs.map.proj.Projection;
+import com.jhlabs.map.proj.WinkelTripelProjection;
 
 public class MapFrame extends JFrame {
 
@@ -471,6 +504,7 @@ class MapPanel extends JPanel {
   private boolean selection = false;
   private Collection<TileName> selectionSet = new LinkedHashSet<TileName>();
   private int[] dragbox;
+  private BufferedImage offScreen;
 
   public MapPanel() {
     MPAdapter	ad = new MPAdapter();
@@ -1010,27 +1044,32 @@ class MapPanel extends JPanel {
 
   public void paintComponent(Graphics g) {
     super.paintComponent(g);
-    showLandmass(g);
-    showTiles(g);
-    showSelection(g);
-    showSyncList(g);
-    showAirports(g);
+    Graphics graphics = offScreen.getGraphics();
+    graphics.setClip(0, 0, getWidth(), getHeight());
+    showLandmass(graphics);
+    showTiles(graphics);
+    showSelection(graphics);
+    showSyncList(graphics);
+    showAirports(graphics);
 
     // crosshair
-    {Graphics2D g2 = (Graphics2D)g;
-    g2.setTransform(new AffineTransform());
-    g2.setColor(Color.white);
-    g2.drawLine(getWidth()/2-50, getHeight()/2, getWidth()/2+50, getHeight()/2);
-    g2.drawLine(getWidth()/2, getHeight()/2-50, getWidth()/2, getHeight()/2+50);
+    {
+      Graphics2D g2 = (Graphics2D) graphics;
+      g2.setTransform(new AffineTransform());
+      g2.setColor(Color.white);
+      g2.drawLine(getWidth() / 2 - 50, getHeight() / 2, getWidth() / 2 + 50,
+          getHeight() / 2);
+      g2.drawLine(getWidth() / 2, getHeight() / 2 - 50, getWidth() / 2,
+          getHeight() / 2 + 50);
     }
-
-    /*
-    Graphics2D	g2 = (Graphics2D)g;
-    Dimension	d = getSize(null);
-    showLandmass(map.createGraphics());
-    showTiles(grat.createGraphics());
-    g.drawImage( map, 0, 0, d.width, d.height, 0, 0, d.width, d.height, this);
-    g.drawImage(grat, 0, 0, d.width, d.height, 0, 0, d.width, d.height, this);
-    */
+    // Draw double buffered Image
+    g.drawImage(offScreen, 0, 0, this);
+  }
+  
+  @Override
+  public void setSize(int width, int height) {
+    super.setSize(width, height);
+    offScreen = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+    offScreen.getGraphics().setClip(0, 0, width, height);
   }
 }
