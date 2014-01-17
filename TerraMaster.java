@@ -157,17 +157,17 @@ public class TerraMaster
 
     String geom = props.getProperty("Geometry");
     int w = 800;
-    int h= 600;
+    int h = 600;
     int x = 0;
     int y = 0;
-    Pattern pattern = Pattern.compile("([0-9]*)x([0-9]*)([+-][0-9]*)([+-][0-9]*)");
+    Pattern pattern = Pattern.compile("([0-9]+)x([0-9]+)([+-][0-9]+)([+-][0-9]+)");
     if (geom != null) {
       Matcher matcher = pattern.matcher(geom);
       if (matcher.find()) {
         w = Integer.parseInt(matcher.group(1));
         h = Integer.parseInt(matcher.group(2));
-        x = Integer.parseInt(matcher.group(3));
-        y = Integer.parseInt(matcher.group(4));
+        x = Integer.parseInt(matcher.group(3).replaceFirst("\\+", ""));
+        y = Integer.parseInt(matcher.group(4).replaceFirst("\\+", ""));
       }
     }
     String path = props.getProperty("SceneryPath");
