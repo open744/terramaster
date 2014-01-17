@@ -8,7 +8,7 @@ import javax.swing.SwingUtilities;
 
 // it keeps a per-session HashMap of known airports
 
-// http://mpmap01.flightgear.org/fg_nav_xml_proxy.cgi?sstr=wbks&apt_code
+// http://mpmap02.flightgear.org/fg_nav_xml_proxy.cgi?sstr=wbks&apt_code
 
 public class FGMap
 {
@@ -80,7 +80,7 @@ public class FGMap
 
   public List<Airport> search(String str)
   {
-    String url = String.format("http://mpmap01.flightgear.org/fg_nav_xml_proxy.cgi?sstr=%s&apt_code&apt_name", str);
+    String url = String.format("http://mpmap02.flightgear.org/fg_nav_xml_proxy.cgi?sstr=%s&apt_code&apt_name", str);
 
     try {
       return webquery(new URL(url));
@@ -98,7 +98,7 @@ public class FGMap
       int lat = t.getLat(), lon = t.getLon();
       String sw = String.format("%d,%d", lat, lon);
       String ne = String.format("%d,%d", lat+1, lon+1);
-      String url = String.format("http://mpmap01.flightgear.org/fg_nav_xml_proxy.cgi?ne=%s&sw=%s&apt_code", ne, sw);
+      String url = String.format("http://mpmap02.flightgear.org/fg_nav_xml_proxy.cgi?ne=%s&sw=%s&apt_code", ne, sw);
       try {
 	result.addAll(webquery(new URL(url)));
 	SwingUtilities.invokeLater(new Runnable() {
