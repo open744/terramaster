@@ -112,6 +112,8 @@ public class MapFrame extends JFrame {
 	    if (a.equals("PREFS")) {
 	      //JOptionPane.showInputDialog(butPrefs, "Path to scenery");
 	      fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+	      fc.setCurrentDirectory(new File((String) TerraMaster.props.get("SceneryPath")));
+	      
 	      if (fc.showOpenDialog(butPrefs) == JFileChooser.APPROVE_OPTION) {
 		File	f = fc.getSelectedFile();
 		fc.setCurrentDirectory(f);
