@@ -112,7 +112,10 @@ public class MapFrame extends JFrame {
 	    if (a.equals("PREFS")) {
 	      //JOptionPane.showInputDialog(butPrefs, "Path to scenery");
 	      fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-	      fc.setCurrentDirectory(new File((String) TerraMaster.props.get("SceneryPath")));
+	      if((String) TerraMaster.props.get("SceneryPath")!=null)
+	      {
+	        fc.setCurrentDirectory(new File((String) TerraMaster.props.get("SceneryPath")));
+	      }
 	      
 	      if (fc.showOpenDialog(butPrefs) == JFileChooser.APPROVE_OPTION) {
 		File	f = fc.getSelectedFile();
@@ -173,7 +176,7 @@ public class MapFrame extends JFrame {
     tileName.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
     add(tileName);
 
-    butSync = new JButton(new ImageIcon("Sync.png"));
+    butSync = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Sync.png")));
     butSync.setBounds(0, 0, 26, 26);
     butSync.setEnabled(false);
     butSync.addActionListener(ad);
@@ -181,7 +184,7 @@ public class MapFrame extends JFrame {
     butSync.setToolTipText("Synchronise selected tiles");
     add(butSync);
 
-    butDelete = new JButton(new ImageIcon("Trash.png"));
+    butDelete = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Trash.png")));
     butDelete.setBounds(0, 0, 26, 26);
     butDelete.setEnabled(false);
     butDelete.addActionListener(ad);
@@ -197,7 +200,7 @@ public class MapFrame extends JFrame {
     butSearch.setToolTipText("Show airports within selected tiles");
     add(butSearch);
 
-    butStop = new JButton(new ImageIcon("Stop sign.png"));
+    butStop = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Stop sign.png")));
     butStop.setBounds(0, 0, 26, 26);
     butStop.setEnabled(false);
     butStop.addActionListener(ad);
@@ -205,21 +208,21 @@ public class MapFrame extends JFrame {
     butStop.setToolTipText("Stop all queued syncs");
     add(butStop);
 
-    butClear = new JButton(new ImageIcon("New document.png"));
+    butClear = new JButton(new ImageIcon(getClass().getClassLoader().getResource("New document.png")));
     butClear.setBounds(0, 0,  26, 26);
     butClear.addActionListener(ad);
     butClear.setActionCommand("CLEAR");
     butClear.setToolTipText("Clear all airports from map");
     add(butClear);
 
-    butReset = new JButton(new ImageIcon("Globe.png"));
+    butReset = new JButton(new ImageIcon(getClass().getClassLoader().getResource("globe.png")));
     butReset.setBounds(0, 0,  26, 26);
     butReset.addActionListener(ad);
     butReset.setActionCommand("RESET");
     butReset.setToolTipText("Toggle between projections");
     add(butReset);
 
-    butPrefs = new JButton(new ImageIcon("Application.png"));
+    butPrefs = new JButton(new ImageIcon(getClass().getClassLoader().getResource("application.png")));
     butPrefs.setBounds(0, 0,  26, 26);
     butPrefs.addActionListener(ad);
     butPrefs.setActionCommand("PREFS");
@@ -241,6 +244,7 @@ public class MapFrame extends JFrame {
     progressBar = new JProgressBar();
     progressBar.setBounds(0, 0, 120, 20);
     progressBar.setVisible(false);
+    progressBar.setStringPainted(true);
     progressBar.setMaximum(0);
     add(progressBar);
 
@@ -281,6 +285,7 @@ public class MapFrame extends JFrame {
   // called from Svn thread
   public void progressUpdate(int n) {
     progressBar.setValue(progressBar.getValue()+n);
+    progressBar.setToolTipText(""+progressBar.getValue()+" / "+progressBar.getMaximum());
     repaint();
   }
   
