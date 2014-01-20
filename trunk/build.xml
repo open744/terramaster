@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     17.01.2014 16:54:24                                                        
+
+     Terramaster    
+     Tool to manage Flightgear scenery
+                                                                                   
+     ====================================================================== -->
+<project name="Terramaster" default="default">
+	<description>
+            Tool to manage Flightgear scenery
+    </description>
+
+	<!-- ================================= 
+          target: default              
+         ================================= -->
+	<target name="default" depends="compile,jar" description="Tool to manage Flightgear scenery">
+
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: depends                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="compile">
+		<javac debug="true" includeantruntime="false" srcdir="." optimize="false" verbose="true"/>
+	</target>
+	
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: jar                      
+         - - - - - - - - - - - - - - - - - -->
+    <target name="jar">
+            <jar destfile="terramaster.jar" basedir="." manifest="manifest" includes="*.class,*.png,*.b,LIB/*.jar"> </jar>
+    </target>
+
+</project>
