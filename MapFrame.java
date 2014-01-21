@@ -31,11 +31,9 @@ import java.util.regex.Pattern;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
@@ -215,7 +213,7 @@ public class MapFrame extends JFrame {
     butClear.setToolTipText("Clear all airports from map");
     add(butClear);
 
-    butReset = new JButton(new ImageIcon(getClass().getClassLoader().getResource("globe.png")));
+    butReset = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Globe.png")));
     butReset.setBounds(0, 0,  26, 26);
     butReset.addActionListener(ad);
     butReset.setActionCommand("RESET");
