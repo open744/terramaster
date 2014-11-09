@@ -76,28 +76,28 @@ public class TerraMaster
   }
 
   // builds a HashMap of /Terrain and /Objects
-  static Map<TileName, TileData> newScnMap(String path)
-  {
-    String[] types = { "/Terrain", "/Objects" };
-    Pattern patt = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
-    Map<TileName, TileData> map = new HashMap<TileName, TileData>(180*90);
+	static Map<TileName, TileData> newScnMap(String path) {
+		String[] types = { "/Terrain", "/Objects" };
+		Pattern patt = Pattern
+				.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
+		Map<TileName, TileData> map = new HashMap<TileName, TileData>(180 * 90);
 
-    for (int i = 0; i < types.length; ++i) {
-      File	list[] = new File(path + types[i]).listFiles();
-      if (list == null) return map;
+		for (int i = 0; i < types.length; ++i) {
+			File list[] = new File(path + types[i]).listFiles();
+			if (list == null)
+				continue;
 
-      // list of 10x10 dirs
-      for (File f: list) {
-	Matcher	m = patt.matcher(f.getName());
-	if (m.matches()) {
-	  // now look inside this dir
-	  buildScnMap(f, map, i);
+			// list of 10x10 dirs
+			for (File f : list) {
+				Matcher m = patt.matcher(f.getName());
+				if (m.matches()) {
+					// now look inside this dir
+					buildScnMap(f, map, i);
+				}
+			}
+		}
+		return map;
 	}
-      }
-    }
-    return map;
-  }
-
 
 
 
