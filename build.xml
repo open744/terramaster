@@ -22,7 +22,13 @@
           target: depends                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="compile">
-		<javac debug="true" includeantruntime="false" srcdir="." optimize="false" verbose="true"/>
+		<javac debug="true" includeantruntime="false" srcdir="." optimize="false" verbose="true">
+                        <classpath>
+                                <fileset dir="LIB">
+                                        <include name="*.jar" />
+                                </fileset>
+                        </classpath>
+                </javac>
 	</target>
 	
 	<!-- - - - - - - - - - - - - - - - - - 
