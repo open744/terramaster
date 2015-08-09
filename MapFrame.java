@@ -60,12 +60,13 @@ public class MapFrame extends JFrame {
 	    butDelete.setLocation(115-1, 7);
 	    butSearch.setLocation(140-1, 7);
 	    butStop.setLocation(165-1, 7);
-	    butClear.setLocation(200-1, 7);
-	    butReset.setLocation(225-1, 7);
-	    butPrefs.setLocation(250-1, 7);
-	    search.setLocation(280, 10);
-	    searchBar.setLocation(325, 10);
-	    progressBar.setLocation(450, 9);
+            butModels.setLocation(190-1, 7);
+	    butClear.setLocation(220-1, 7);
+	    butReset.setLocation(245-1, 7);
+	    butPrefs.setLocation(270-1, 7);
+	    search.setLocation(300, 10);
+	    searchBar.setLocation(345, 10);
+	    progressBar.setLocation(470, 9);
 	    map.setLocation(0, 40);
 	    map.setSize(getWidth(), getHeight()-40);
 	    updateGeom();
@@ -83,6 +84,15 @@ public class MapFrame extends JFrame {
 	      butStop.setEnabled(true);
 	      map.clearSelection();
 	      repaint();
+	    } else
+
+            if (a.equals("MODELS")) {
+	      Collection<TileName> set = new ArrayList<TileName>();
+              set.add(new TileName("MODELS"));
+	      TerraMaster.svn.sync(set);
+	      progressBar.setMaximum(progressBar.getMaximum() + set.size() * 2);
+	      progressBar.setVisible(true);
+	      butStop.setEnabled(true);
 	    } else
 
 	    if (a.equals("DELETE")) {
@@ -146,7 +156,7 @@ public class MapFrame extends JFrame {
   MapPanel	map;
   JTextField	searchBar;
   JLabel	tileName, search;
-  JButton	butSync, butDelete, butStop, butReset, butClear, butPrefs, butSearch;
+  JButton	butSync, butDelete, butStop, butModels, butReset, butClear, butPrefs, butSearch;
   JFileChooser	fc = new JFileChooser();
   JProgressBar	progressBar;
 
@@ -205,6 +215,14 @@ public class MapFrame extends JFrame {
     butStop.setActionCommand("STOP");
     butStop.setToolTipText("Stop all queued syncs");
     add(butStop);
+
+    butModels = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Company.png")));
+    butModels.setBounds(0, 0, 26, 26);
+    butModels.setEnabled(true);
+    butModels.addActionListener(ad);
+    butModels.setActionCommand("MODELS");
+    butModels.setToolTipText("Synchronise shared models and airport data");
+    add(butModels);
 
     butClear = new JButton(new ImageIcon(getClass().getClassLoader().getResource("New document.png")));
     butClear.setBounds(0, 0,  26, 26);
@@ -647,21 +665,23 @@ class MapPanel extends JPanel {
       if (d.terrain) {
 	txt += " +Terr";
 	File f = d.dir_terr;
-	int count = 0;
-	for (String i : f.list()) {
-	  if (i.endsWith(".btg.gz")) {
-	    int n = i.indexOf('.');
-	    if (n > 4) n = 4;
-	    i = i.substring(0, n);
-	    try {
-	    Short.parseShort(i);
-	    } catch (Exception x) {
-	    str += i + " ";
-	    if ((++count % 4) == 0)
-	      str += "<br>";
-	    }
-	  }
-	}
+        if (f != null) {
+          int count = 0;
+          for (String i : f.list()) {
+            if (i.endsWith(".btg.gz")) {
+              int n = i.indexOf('.');
+              if (n > 4) n = 4;
+              i = i.substring(0, n);
+              try {
+              Short.parseShort(i);
+              } catch (Exception x) {
+              str += i + " ";
+              if ((++count % 4) == 0)
+                str += "<br>";
+              }
+            }
+          }
+        }
       }
       if (d.objects)
 	txt += " +Obj";

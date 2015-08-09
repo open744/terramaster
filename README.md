@@ -4,7 +4,7 @@
 This software makes use of the SVNKit library from TMate Software
 http://svnkit.com,
 and free icons from Aha-Soft
-http://www.small-icons.com/stock-icons/24x24-free-application-icons.htm
+http://www.small-icons.com/packs/24x24-free-application-icons.htm
 
 This software makes use of the Global Self-consistent, Hierarchical,
 High-resolution Geography Database (GSHHG):

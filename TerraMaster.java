@@ -34,7 +34,9 @@ public class TerraMaster
 
   public static Map<TileName, TileData>	mapScenery;
   static final int	TERRAIN = 0,
-			OBJECTS = 1;
+			OBJECTS = 1,
+			MODELS  = 2,
+			AIRPORTS = 3;
 
   public static TileName tilenameManager;
   public static Svn svn;
@@ -83,7 +85,12 @@ public class TerraMaster
 		Map<TileName, TileData> map = new HashMap<TileName, TileData>(180 * 90);
 
 		for (int i = 0; i < types.length; ++i) {
-			File list[] = new File(path + types[i]).listFiles();
+			File d = new File(path + types[i]);
+                        if (!d.exists()) {
+                                // create Terrain/Objects if !exist
+                                d.mkdir();
+                        }
+			File list[] = d.listFiles();
 			if (list == null)
 				continue;
 
