@@ -89,6 +89,17 @@ public class TileName implements Comparable<TileName>
     return String.format("%c%03d%c%02d", ew, lon, ns, lat);
   }
 
+  // returns ICAO code from "ICAO.btg.gz", or null
+  public static String getAirportCode(String n)
+  {
+    Pattern p = Pattern.compile("([A-Z0-9]{1,4}).btg.gz");
+    Matcher m = p.matcher(n);
+    if (m.matches()) {
+      return m.group(1);
+    }
+    return null;
+  }
+
 
 
 

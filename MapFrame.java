@@ -79,7 +79,7 @@ public class MapFrame extends JFrame {
 	    if (a.equals("SYNC")) {
 	      Collection<TileName> set = map.getSelection();
 	      TerraMaster.svn.sync(set);
-	      progressBar.setMaximum(progressBar.getMaximum() + set.size() * 2);
+	      progressBar.setMaximum(progressBar.getMaximum() + set.size() * 3);
 	      progressBar.setVisible(true);
 	      butStop.setEnabled(true);
 	      map.clearSelection();
@@ -90,7 +90,7 @@ public class MapFrame extends JFrame {
 	      Collection<TileName> set = new ArrayList<TileName>();
               set.add(new TileName("MODELS"));
 	      TerraMaster.svn.sync(set);
-	      progressBar.setMaximum(progressBar.getMaximum() + set.size() * 2);
+	      progressBar.setMaximum(progressBar.getMaximum() + set.size() * 1);
 	      progressBar.setVisible(true);
 	      butStop.setEnabled(true);
 	    } else
@@ -221,7 +221,7 @@ public class MapFrame extends JFrame {
     butModels.setEnabled(true);
     butModels.addActionListener(ad);
     butModels.setActionCommand("MODELS");
-    butModels.setToolTipText("Synchronise shared models and airport data");
+    butModels.setToolTipText("Synchronise shared models");
     add(butModels);
 
     butClear = new JButton(new ImageIcon(getClass().getClassLoader().getResource("New document.png")));
@@ -292,25 +292,23 @@ public class MapFrame extends JFrame {
     repaint();
   }
 
-  // invoked from Svn thread
-  public void doSvnUpdate(TileName n) {
-    // XXX: paint just one 1x1
-    repaint();
-  }
-
   // called from Svn thread
   public void progressUpdate(int n) {
-    progressBar.setValue(progressBar.getValue()+n);
-    progressBar.setToolTipText(""+progressBar.getValue()+" / "+progressBar.getMaximum());
+    progressBar.setValue(progressBar.getValue() + n);
+    progressBar.setToolTipText("" + progressBar.getValue() + " / " + progressBar.getMaximum());
     repaint();
   }
   
   @Override
   public void setVisible(boolean b) {
     super.setVisible(b);
-    if(b && (TerraMaster.mapScenery == null || TerraMaster.mapScenery.isEmpty() ) )
+    if (b && TerraMaster.mapScenery == null)
     {
-      JOptionPane.showMessageDialog(this, "TerraGear path not found or no scenery found", "Error", JOptionPane.ERROR_MESSAGE);
+      JOptionPane.showMessageDialog(this, "Scenery folder not found. Click the gear icon and select the folder containing your scenery files.", "Warning", JOptionPane.WARNING_MESSAGE);
+    } else
+    if (b && TerraMaster.mapScenery.isEmpty() )
+    {
+      JOptionPane.showMessageDialog(this, "Scenery folder is empty.", "Warning", JOptionPane.WARNING_MESSAGE);
     }
   }
 
@@ -563,7 +561,7 @@ class MapPanel extends JPanel {
   private void setOrtho()
   {
     pj = new OrthographicAzimuthalProjection();
-    System.out.println(pj.getPROJ4Description());
+    //System.out.println(pj.getPROJ4Description());
     mapRadius = HALFPI - 0.1;
     isWinkel = false;
 
@@ -596,7 +594,7 @@ class MapPanel extends JPanel {
   private void setWinkel()
   {
     pj = new WinkelTripelProjection();
-    System.out.println(pj.getPROJ4Description());
+    //System.out.println(pj.getPROJ4Description());
     mapRadius = TWOPI;
     isWinkel = true;
 

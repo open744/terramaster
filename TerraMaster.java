@@ -65,15 +65,16 @@ public class TerraMaster
     map.put(n, t);
   }
 
-  static void buildScnMap(File f, Map<TileName, TileData> map, int type)
+  // given a 10x10 dir, add the 1x1 tiles within to the HashMap
+  static void buildScnMap(File dir, Map<TileName, TileData> map, int type)
   {
-    File x[] = f.listFiles();
+    File tiles[] = dir.listFiles();
     Pattern p = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
 
-    for (File i: x) {
-      Matcher	m = p.matcher(i.getName());
+    for (File f: tiles) {
+      Matcher	m = p.matcher(f.getName());
       if (m.matches())
-	addScnMapTile(map, i, type);
+	addScnMapTile(map, f, type);
     }
   }
 
@@ -86,22 +87,17 @@ public class TerraMaster
 
 		for (int i = 0; i < types.length; ++i) {
 			File d = new File(path + types[i]);
-                        if (!d.exists()) {
-                                // create Terrain/Objects if !exist
-                                d.mkdir();
-                        }
 			File list[] = d.listFiles();
-			if (list == null)
-				continue;
-
-			// list of 10x10 dirs
-			for (File f : list) {
-				Matcher m = patt.matcher(f.getName());
-				if (m.matches()) {
-					// now look inside this dir
-					buildScnMap(f, map, i);
-				}
-			}
+			if (list != null) {
+                            // list of 10x10 dirs
+                            for (File f : list) {
+                                    Matcher m = patt.matcher(f.getName());
+                                    if (m.matches()) {
+                                            // now look inside this dir
+                                            buildScnMap(f, map, i);
+                                    }
+                            }
+                        }
 		}
 		return map;
 	}
