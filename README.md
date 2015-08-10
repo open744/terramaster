@@ -5,13 +5,15 @@ This software makes use of:
 
 1. The SVNKit library from TMate Software
 http://svnkit.com
-2. JarClassLoader from JDotSoft
+2. The Java Map Projection Library
+http://www.jhlabs.com/java/maps/proj/
+3. JarClassLoader from JDotSoft
 http://jdotsoft.com/JarClassLoader.php
-3. Free icons from Aha-Soft
+4. Free icons from Aha-Soft
 http://www.small-icons.com/packs/24x24-free-application-icons.htm
-4. The Global Self-consistent, Hierarchical, High-resolution Geography Database (GSHHG)
+5. The Global Self-consistent, Hierarchical, High-resolution Geography Database (GSHHG)
 https://www.ngdc.noaa.gov/mgg/shorelines/gshhs.html
-5. FlightGear multiplayer map server for airport & navaid lookup
+6. FlightGear multiplayer map server for airport & navaid lookup
 http://mpmap02.flightgear.org
 
 #### Build instructions:
