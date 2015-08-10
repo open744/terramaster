@@ -1,23 +1,24 @@
 ## TerraMaster
 ### GUI for managing FlightGear scenery collections
 
-This software makes use of the SVNKit library from TMate Software
-http://svnkit.com,
-and free icons from Aha-Soft
+This software makes use of:
+
+1. The SVNKit library from TMate Software
+http://svnkit.com
+2. JarClassLoader from JDotSoft
+http://jdotsoft.com/JarClassLoader.php
+3. Free icons from Aha-Soft
 http://www.small-icons.com/packs/24x24-free-application-icons.htm
-
-This software makes use of the Global Self-consistent, Hierarchical,
-High-resolution Geography Database (GSHHG):
+4. The Global Self-consistent, Hierarchical, High-resolution Geography Database (GSHHG)
 https://www.ngdc.noaa.gov/mgg/shorelines/gshhs.html
-
-Airport & navaid lookup uses FlightGear multiplayer map server
+5. FlightGear multiplayer map server for airport & navaid lookup
 http://mpmap02.flightgear.org
 
 #### Build instructions:
 0. You need Apache Ant to build.
 1. Grab the source code.
 2. The required libraries are already in the LIB subdirectory.
-3. 'ant compile' or 'ant jar' to do the work.
+3. 'ant' to do the work.
 
 #### Run instructions:
 1. Start the program using the command "java -jar terramaster.jar"
