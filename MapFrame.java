@@ -79,7 +79,7 @@ public class MapFrame extends JFrame {
 	    if (a.equals("SYNC")) {
 	      Collection<TileName> set = map.getSelection();
 	      TerraMaster.svn.sync(set);
-	      progressBar.setMaximum(progressBar.getMaximum() + set.size() * 3);
+	      progressBar.setMaximum(progressBar.getMaximum() + set.size() * 2);
 	      progressBar.setVisible(true);
 	      butStop.setEnabled(true);
 	      map.clearSelection();

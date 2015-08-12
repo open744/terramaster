@@ -21,6 +21,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
   SVNUpdateClient updateClient;
   SVNStatusClient statusClient;
   SVNLogClient logClient;
+  SVNWCClient wcClient;
   String urlBase = "http://terrascenery.googlecode.com/svn/trunk/data/Scenery/";
   String pathBase;
   long syncsize, synccount;
@@ -35,6 +36,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
     updateClient = clientManager.getUpdateClient();
     statusClient = clientManager.getStatusClient();
     logClient = clientManager.getLogClient();
+    wcClient = clientManager.getWCClient();
     updateClient.setIgnoreExternals(false);
 
     syncList = new LinkedList<TileName>();
@@ -79,7 +81,6 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
   public void checkCancelled() throws SVNCancelException
   {
     if (cancelFlag) {
-System.out.println("I SAID STOP!!");
       cancelFlag = false;
       invokeLater(1);		// reset progressBar
       throw new SVNCancelException();
@@ -119,6 +120,17 @@ System.out.println("I SAID STOP!!");
     //e.DIRENT_KIND.equals(SVNNodeKind.DIR)
   }
 
+  // svn list --verbose --> fills up syncsize/synccount
+  private void printStats(String path)
+  {
+    try {
+      SVNURL url = SVNURL.parseURIDecoded(urlBase + path);
+      synccount = syncsize = 0;
+      logClient.doList(url, SVNRevision.HEAD, SVNRevision.HEAD, false, true, this);
+      System.out.printf("%s/%d items (%d bytes)... ", path, synccount, syncsize);
+    } catch (SVNException e) { }
+  }
+
   /*
   SVNStatus stat = statusClient.doStatus(pathBase +
       "Terrain/e140s40/e144s38/"), true);
@@ -144,28 +156,24 @@ System.out.println("I SAID STOP!!");
 
       try {
 
-      SVNURL url = SVNURL.parseURIDecoded(urlBase + node);
       File f = new File(pathBase + node);
 
-      synccount = syncsize = 0;
-      logClient.doList(url, SVNRevision.HEAD, SVNRevision.HEAD, false, true, this);
-      System.out.printf("%s%d items (%d bytes)... ", types[i], synccount, syncsize);
-
-      // try update, if fails, do checkout (export?)
-      //updateOrCheckout(url, f);
-
-      //verifyTree(f, url);
+      printStats(node);
       long rev = updateNode(f);
       if (rev > 0)
-	System.out.printf("updated to r%d... ", rev);
-      invokeLater(2);		// update progressBar
+	System.out.printf("updated to r%d.\n", rev);
 
       TerraMaster.addScnMapTile(TerraMaster.mapScenery, f, ntype[i]);
 
+      invokeLater(2);		// update progressBar
+
       // look for airport codes among the newly sync'd Terrain files
       if (i == 0) {
-	syncAirports(findAirports(f));
-	invokeLater(2);		// update progressBar
+	String[] apt = findAirports(f);
+	for (int j = 0; j < apt.length; ++j)
+	  invokeLater(3);	// extend progressBar
+
+	syncAirports(apt);
       }
 
       } catch (SVNException x) {
@@ -174,11 +182,10 @@ System.out.println("I SAID STOP!!");
         // E160013 = URL not found
         //if (em.getErrorCode().getCode() != 160013)
           System.out.println(x.getMessage());
+	// 155004 unfinished work items, need svn cleanup
       } //catch (Exception x) { System.out.println(x); }
 
     }
-
-    System.out.println();
   }
 
   // returns an array of unique 3-char prefixes
@@ -195,29 +202,6 @@ System.out.println("I SAID STOP!!");
     return set.toArray(new String[1]);
   }
 
-
-  private void syncModels()
-  {
-    long rev;
-
-    try {
-      verifyRoot(new File(pathBase), SVNURL.parseURIDecoded(urlBase));
-
-      File f = new File(pathBase + "Models/");
-      SVNURL url = SVNURL.parseURIDecoded(urlBase + "Models/");
-
-      synccount = syncsize = 0;
-      logClient.doList(url, SVNRevision.HEAD, SVNRevision.HEAD, false, true, this);
-      System.out.printf("Models/%d items (%d bytes)... ", synccount, syncsize);
-
-      rev = updateNode(f);
-      if (rev > 0) System.out.printf("updated to r%d.\n", rev);
-
-    } catch (SVNException x) {
-      System.out.println(x.getMessage());
-    }
-  }
-
   // sync "Airports/W/A/T"
   private void syncAirports(String[] names)
   {
@@ -231,18 +215,60 @@ System.out.println("I SAID STOP!!");
       File f = new File(pathBase + node);
 
       try {
+	printStats(node);
+	rev = updateNode(f);
+	if (rev > 0) System.out.printf("updated to r%d.\n", rev);
 
-      SVNURL url = SVNURL.parseURIDecoded(urlBase + node);
-
-      synccount = syncsize = 0;
-      logClient.doList(url, SVNRevision.HEAD, SVNRevision.HEAD, false, true, this);
-      System.out.printf("%s%d items (%d bytes)... ", node, synccount, syncsize);
-
-      rev = updateNode(f);
-      if (rev > 0) System.out.printf("updated to r%d... ", rev);
+	invokeLater(2);		// update progressBar
 
       } catch (SVNException x) {
         System.out.println(x.getMessage());
+      }
+    }
+  }
+
+  // svn update Models/*
+  private void syncModels(String name)
+  {
+    try {
+      printStats("Models/" + name);
+
+      File f = new File(pathBase + "Models/" + name);
+      long rev = updateNode(f);
+      if (rev > 0) System.out.printf("updated to r%d.\n", rev);
+	
+      invokeLater(2);		// update progressBar
+    } catch (SVNException x) {
+      System.out.println(x.getMessage());
+    } 
+  }
+
+  // svn update --depth immediate Models
+  private void syncModels()
+  {
+    File d;
+
+    try {
+      verifyRoot(new File(pathBase), SVNURL.parseURIDecoded(urlBase));
+
+      d = new File(pathBase + "Models/");
+
+      // first update the top level
+      File[] list = new File[1];
+      list[0] = d;
+      long[] rev = updateClient.doUpdate(list, SVNRevision.HEAD, SVNDepth.IMMEDIATES, true, true, true);
+    } catch (SVNException x) {
+      System.out.println(x.getMessage());
+      return;
+    } finally {
+      invokeLater(2);		// update progressBar
+    }
+
+    // queue each subdir in syncList 
+    synchronized(syncList) {
+      for (File f : d.listFiles()) {	// XXX should filter for dirs only
+	syncList.add(new TileName("MODELS-" + f.getName()));
+	invokeLater(3);
       }
     }
   }
@@ -295,17 +321,6 @@ System.out.println("I SAID STOP!!");
 	syncList.remove(n);
       }
     }
-
-      /*
-      TileData	t = TerraMaster.mapScenery.get(tileName.getText());
-      //Collection<TileName> t = map.getSelection();
-      try {
-      System.out.println("rm -r "
-	  + (t.terrain ? t.dir_terr.getCanonicalFile() : "") + " "
-	  + (t.objects ? t.dir_obj.getCanonicalFile()  : "") );
-      // showTiles();
-      } catch (Exception x) {}
-      */
   }
 
 
@@ -316,6 +331,10 @@ System.out.println("I SAID STOP!!");
 
   public void setScnPath(File f) {
     pathBase = f.getPath() + "/";
+
+    try {
+      wcClient.doCleanup(f);
+    } catch (SVNException e) { }
   }
 
   private boolean noquit = true;
@@ -332,10 +351,15 @@ System.out.println("I SAID STOP!!");
 	synchronized(syncList) {
 	  n = syncList.getFirst();
 	}
+
         String name = n.getName();
-        if (name.equals("MODELS"))
-          syncModels();
-        else {
+        if (name.startsWith("MODELS")) {
+	  int i = name.indexOf('-');
+	  if (i > -1)
+	    syncModels(name.substring(i+1));
+	  else
+	    syncModels();
+        } else {
           String path = buildPath(name);
           if (path != null)
             checkout(path);
@@ -366,6 +390,9 @@ System.out.println("I SAID STOP!!");
 	    break;
 	  case 2:	// update progressBar
 	    TerraMaster.frame.progressUpdate(1);
+	    break;
+	  case 3:	// progressBar maximum++
+	    TerraMaster.frame.progressBar.setMaximum(TerraMaster.frame.progressBar.getMaximum() + 1);
 	    break;
 	  }
 	}   
