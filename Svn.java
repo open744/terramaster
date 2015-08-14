@@ -124,11 +124,17 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
   private void printStats(String path)
   {
     try {
-      SVNURL url = SVNURL.parseURIDecoded(urlBase + path);
+      SVNURL url = SVNURL.parseURIEncoded(urlBase + path);
       synccount = syncsize = 0;
       logClient.doList(url, SVNRevision.HEAD, SVNRevision.HEAD, false, true, this);
       System.out.printf("%s/%d items (%d bytes)... ", path, synccount, syncsize);
-    } catch (SVNException e) { }
+    } catch (SVNException e) {
+      SVNErrorMessage em = e.getErrorMessage();
+      if (em.getErrorCode().getCode() == 160013)
+	System.err.printf("%s not found\n", path);
+      else
+	System.err.printf("doList: %s\n", e.getMessage());
+    }
   }
 
   /*
@@ -145,7 +151,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
 
     // make sure the working copy root is valid
     try {
-      verifyRoot(new File(pathBase), SVNURL.parseURIDecoded(urlBase));
+      verifyRoot(new File(pathBase), SVNURL.parseURIEncoded(urlBase));
     } catch (SVNException e) {
     }
 
@@ -160,20 +166,21 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
 
       printStats(node);
       long rev = updateNode(f);
-      if (rev > 0)
-	System.out.printf("updated to r%d.\n", rev);
-
-      TerraMaster.addScnMapTile(TerraMaster.mapScenery, f, ntype[i]);
-
       invokeLater(2);		// update progressBar
 
-      // look for airport codes among the newly sync'd Terrain files
-      if (i == 0) {
-	String[] apt = findAirports(f);
-	for (int j = 0; j < apt.length; ++j)
-	  invokeLater(3);	// extend progressBar
+      if (rev > 0) {
+	System.out.printf("updated to r%d.\n", rev);
+	TerraMaster.addScnMapTile(TerraMaster.mapScenery, f, ntype[i]);
 
-	syncAirports(apt);
+	// look for airport codes among the newly sync'd Terrain files
+	if (i == 0 & f.exists()) {
+	  String[] apt = findAirports(f);
+	  if (apt != null) {
+	    for (int j = 0; j < apt.length; ++j)
+	      invokeLater(3);	// extend progressBar
+	    syncAirports(apt);
+	  }
+	}
       }
 
       } catch (SVNException x) {
@@ -183,7 +190,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
         //if (em.getErrorCode().getCode() != 160013)
           System.out.println(x.getMessage());
 	// 155004 unfinished work items, need svn cleanup
-      } //catch (Exception x) { System.out.println(x); }
+      } catch (Exception x) { System.out.println(x); }
 
     }
   }
@@ -207,20 +214,16 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
   {
     long rev;
 
-    if (names == null) return;
-
     for (String i : names) {
-      String node = String.format("Airports/%c/%c/%c/",
+      String node = String.format("Airports/%c/%c/%c",
           i.charAt(0), i.charAt(1), i.charAt(2));
       File f = new File(pathBase + node);
 
       try {
 	printStats(node);
 	rev = updateNode(f);
-	if (rev > 0) System.out.printf("updated to r%d.\n", rev);
-
 	invokeLater(2);		// update progressBar
-
+	if (rev > 0) System.out.printf("updated to r%d.\n", rev);
       } catch (SVNException x) {
         System.out.println(x.getMessage());
       }
@@ -235,9 +238,8 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
 
       File f = new File(pathBase + "Models/" + name);
       long rev = updateNode(f);
-      if (rev > 0) System.out.printf("updated to r%d.\n", rev);
-	
       invokeLater(2);		// update progressBar
+      if (rev > 0) System.out.printf("updated to r%d.\n", rev);
     } catch (SVNException x) {
       System.out.println(x.getMessage());
     } 
@@ -249,7 +251,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
     File d;
 
     try {
-      verifyRoot(new File(pathBase), SVNURL.parseURIDecoded(urlBase));
+      verifyRoot(new File(pathBase), SVNURL.parseURIEncoded(urlBase));
 
       d = new File(pathBase + "Models/");
 
@@ -295,6 +297,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
 
   private void deltree(File d)
   {
+    if (!d.exists()) return;
     for (File f : d.listFiles()) {
       if (f.isDirectory())
 	deltree(f);

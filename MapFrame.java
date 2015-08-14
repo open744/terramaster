@@ -663,7 +663,7 @@ class MapPanel extends JPanel {
       if (d.terrain) {
 	txt += " +Terr";
 	File f = d.dir_terr;
-        if (f != null) {
+        if (f != null & f.exists()) {
           int count = 0;
           for (String i : f.list()) {
             if (i.endsWith(".btg.gz")) {
