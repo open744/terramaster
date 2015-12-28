@@ -1,5 +1,8 @@
 import	java.util.*;
 import	java.io.File;
+import	java.io.IOException;
+import	java.io.BufferedReader;
+import	java.io.InputStreamReader;
 import	javax.swing.SwingUtilities;
 import	org.tmatesoft.svn.core.wc.*;
 import	org.tmatesoft.svn.core.ISVNCanceller;
@@ -22,7 +25,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
   SVNStatusClient statusClient;
   SVNLogClient logClient;
   SVNWCClient wcClient;
-  String urlBase = "http://terrascenery.googlecode.com/svn/trunk/data/Scenery/";
+  String urlBase;
   String pathBase;
   long syncsize, synccount;
   boolean cancelFlag = false;
@@ -43,6 +46,17 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
 
     // externals stuff
     updateClient.setExternalsHandler(this);
+
+    // 2015-12-28 use FG scenery server redirector
+    try {
+      char[] buf = new char[256];
+      new BufferedReader(new InputStreamReader(
+        new java.net.URL("http://scenery.flightgear.org/svn-server")
+          .openStream())).read(buf, 0, 256);
+      urlBase = new String(buf).trim();
+      System.out.println("SVN server is " + urlBase);
+    } catch (IOException e) {
+    }
   }
 
   // this implements ISVNExternalsHandler
