@@ -205,8 +205,6 @@ public class TerraMaster
   public static void main(String args[]) {
 
     tilenameManager = new TileName();
-    svn = new Svn();
-    svn.start();	// the Svn thread processes the tile queue
 
     fgmap = new FGMap();	// handles webqueries
 
@@ -215,6 +213,8 @@ public class TerraMaster
       props.load(new FileReader("terramaster.properties"));
     } catch (IOException e) {
     }
+    
+    setTileService();
 
     SwingUtilities.invokeLater(new Runnable() {
 	public void run() {
@@ -223,5 +223,19 @@ public class TerraMaster
     });
 
   }
+
+	public static void setTileService() {
+		String server_type = props
+				.getProperty(TerraMasterProperties.SERVER_TYPE);
+		if (server_type == null || server_type.indexOf("SVN") >= 0) {
+			svn = new Svn();
+			svn.start(); // the Svn thread processes the tile queue
+		}
+		else
+		{
+			svn = new HTTPTerraSync();
+			svn.start();
+		}
+	}
 
 }

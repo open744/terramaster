@@ -73,25 +73,6 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
     return ret;
   }
 
-  // given a 1x1 tile, figure out the parent 10x10 container
-  // return the 10/1 path
-  private String buildPath(String tile) {
-    if (tile.length() < 7) return null;
-
-    // XXX throw an exception
-    int lon = Integer.parseInt(tile.substring(1, 4));
-    int lat = Integer.parseInt(tile.substring(5));
-    char ew = tile.charAt(0);
-    char ns = tile.charAt(4);
-
-    int modlon = lon % 10;
-    lon -= ew == 'w' && modlon != 0 ? modlon - 10 : modlon;
-
-    int modlat = lat % 10;
-    lat -= ns == 's' && modlat != 0 ? modlat - 10 : modlat;
-
-    return String.format("%s%03d%s%02d/%s", ew, lon, ns, lat, tile);
-  }
 
   // this implements ISVNCanceller
   public void checkCancelled() throws SVNCancelException
@@ -379,7 +360,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
 	  else
 	    syncModels();
         } else {
-          String path = buildPath(name);
+          String path = n.buildPath();
           if (path != null)
             checkout(path);
         }

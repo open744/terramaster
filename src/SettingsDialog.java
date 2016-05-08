@@ -94,7 +94,7 @@ public class SettingsDialog extends JDialog {
 			cmbScenerySource = new JComboBox();
 			cmbScenerySource.setModel(new DefaultComboBoxModel(new String[] {
 					"Terrasync (SVN)", "HTTP" }));
-			cmbScenerySource.setSelectedItem(TerraMaster.props.getProperty("SVNServer"));
+			cmbScenerySource.setSelectedItem(TerraMaster.props.getProperty(TerraMasterProperties.SERVER_TYPE));
 			GridBagConstraints gbc_comboBox = new GridBagConstraints();
 			gbc_comboBox.insets = new Insets(0, 0, 0, 5);
 			gbc_comboBox.fill = GridBagConstraints.HORIZONTAL;
@@ -112,11 +112,13 @@ public class SettingsDialog extends JDialog {
 					public void actionPerformed(ActionEvent e) {
 						setVisible(false);
 						try {
-							TerraMaster.newScnMap(txtScenerypath.getText());
-							TerraMaster.svn.setScnPath(new File(txtScenerypath.getText()));
-							TerraMaster.props.setProperty("SceneryPath",
+							TerraMaster.mapScenery = TerraMaster.newScnMap(txtScenerypath.getText());
+							TerraMaster.frame.map.repaint();
+							TerraMaster.props.setProperty(TerraMasterProperties.SCENERY_PATH,
 									txtScenerypath.getText());
-							TerraMaster.props.setProperty("SVNServer", (String) cmbScenerySource.getSelectedItem());
+							TerraMaster.props.setProperty(TerraMasterProperties.SERVER_TYPE, (String) cmbScenerySource.getSelectedItem());
+							TerraMaster.setTileService();
+							TerraMaster.svn.setScnPath(new File(txtScenerypath.getText()));
 						} catch (Exception x) {
 							x.printStackTrace();
 						}
@@ -138,7 +140,7 @@ public class SettingsDialog extends JDialog {
 				buttonPane.add(cancelButton);
 			}
 		}
-		txtScenerypath.setText((String) TerraMaster.props.get("SceneryPath"));
+		txtScenerypath.setText((String) TerraMaster.props.get(TerraMasterProperties.SCENERY_PATH));
 	}
 
 }
