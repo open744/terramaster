@@ -22,20 +22,28 @@
           target: depends                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="compile">
-		<javac debug="true" includeantruntime="false" srcdir="." optimize="false" verbose="false">
-                        <classpath>
-                                <fileset dir="LIB">
-                                        <include name="*.jar" />
-                                </fileset>
-                        </classpath>
-                </javac>
+		<javac debug="true" includeantruntime="false" srcdir="." optimize="false" verbose="false" destdir="bin">
+			<classpath>
+				<fileset dir="LIB">
+					<include name="*.jar" />
+				</fileset>
+			</classpath>
+		</javac>
 	</target>
-	
+
 	<!-- - - - - - - - - - - - - - - - - - 
           target: jar                      
          - - - - - - - - - - - - - - - - - -->
-    <target name="jar">
-            <jar destfile="terramaster.jar" basedir="." manifest="manifest" includes="*.class,*.png,*.b,LIB/*.jar"> </jar>
-    </target>
+	<target name="jar">
+		<jar destfile="terramaster.jar" manifest="manifest">
+			<fileset dir="bin">
+				<include name="**/*" />
+			</fileset>
+			<fileset dir="LIB">
+				<include name="*.jar" />
+			</fileset>
+
+		</jar>
+	</target>
 
 </project>
