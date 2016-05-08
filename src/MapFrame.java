@@ -219,7 +219,7 @@ public class MapFrame extends JFrame {
     butClear.setToolTipText("Clear all airports from map");
     add(butClear);
 
-    butReset = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Globe.png")));
+    butReset = new JButton(new ImageIcon(getClass().getClassLoader().getResource("globe.png")));
     butReset.setBounds(0, 0,  26, 26);
     butReset.addActionListener(ad);
     butReset.setActionCommand("RESET");
