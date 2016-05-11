@@ -7,6 +7,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -24,16 +26,21 @@ import java.util.regex.Pattern;
 
 import javax.swing.SwingUtilities;
 
-import org.tmatesoft.svn.core.SVNException;
-
 import net.sf.ivmaidns.dns.DNSConnection;
 import net.sf.ivmaidns.dns.DNSMsgHeader;
 import net.sf.ivmaidns.dns.DNSName;
 import net.sf.ivmaidns.dns.DNSRecord;
 import net.sf.ivmaidns.util.UnsignedInt;
 
+/**
+ * Implementation of the new TerraSync Version
+ * 
+ * @author keith.paterson
+ */
+
 public class HTTPTerraSync extends Thread implements TileService {
 
+	private static final String TERRASYNC_SERVERS = "nameservers.bin";
 	private LinkedList<TileName> syncList = new LinkedList<TileName>();
 	private boolean cancelFlag = false;
 	private boolean noquit = true;
@@ -179,7 +186,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 			invokeLater(2); // update progressBar
 			syncDirectory("Objects/" + path);
 			invokeLater(2); // update progressBar
-			String[] apt = findAirports(new File(localBaseDir, "Terrain/" + path));
+			String[] apt = findAirports(new File(localBaseDir, "Terrain/"
+					+ path));
 			if (apt != null) {
 				for (int j = 0; j < apt.length; ++j)
 					invokeLater(3); // extend progressBar
@@ -317,7 +325,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 						System.out.println(localFile.getAbsolutePath());
 						byte[] b = calcSHA1(localFile);
 						String bytesToHex = bytesToHex(b);
-//						System.out.println(bytesToHex);
+						// System.out.println(bytesToHex);
 						load = !splitLine[2].equals(bytesToHex);
 					} else {
 						if (!localFile.getParentFile().exists()) {
@@ -355,6 +363,15 @@ public class HTTPTerraSync extends Thread implements TileService {
 		return new String(hexChars);
 	}
 
+	/**
+	 * Calculates the SHA1 Hash for the given File
+	 * 
+	 * @param file
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws IOException
+	 */
+
 	private byte[] calcSHA1(File file) throws NoSuchAlgorithmException,
 			IOException {
 		MessageDigest digest = MessageDigest.getInstance("SHA-1");
@@ -369,9 +386,13 @@ public class HTTPTerraSync extends Thread implements TileService {
 		}
 		return digest.digest();
 	}
+	
+	/**
+	 * Queries the DNS Server for the records pointing to the terrasync servers. 
+	 * Always queries 8.8.8.8 (Google). If nothing is received it uses the last ones
+	 */
 
 	private void queryServer() {
-
 		if (urls.size() > 0)
 			return;
 		int index, len = 0, rcode, count = 0;
@@ -379,6 +400,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 		String queryName = null;
 		String fileName = null;
 		InetAddress server;
+		// The default Google DNS which should work everywhere
 		String serverName = "8.8.8.8";
 		try {
 			server = InetAddress.getByName(serverName);
@@ -464,7 +486,9 @@ public class HTTPTerraSync extends Thread implements TileService {
 				if (!isNS) {
 					int section = 1;
 					System.out.println("Answer:");
+					urls.clear();
 					do {
+
 						while (count <= 0) {
 							count = len;
 							String str = "";
@@ -728,7 +752,26 @@ public class HTTPTerraSync extends Thread implements TileService {
 					break;
 			} while (true);
 		}
-
+		if (!urls.isEmpty()) {
+			try {
+				ObjectOutputStream ois = new ObjectOutputStream(new FileOutputStream(TERRASYNC_SERVERS));
+				ois.writeObject(urls);
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		} else {
+			try {
+				ObjectInputStream ois = new ObjectInputStream(new FileInputStream(TERRASYNC_SERVERS));
+				urls = (ArrayList<URL>) ois.readObject();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 
 	private void invokeLater(final int n) {
