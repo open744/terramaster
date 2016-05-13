@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Random;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -138,6 +139,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 				} catch (InterruptedException e) {
 				}
 			}
+			HashSet<String> apt = new HashSet<String>();
 			while (syncList.size() > 0) {
 				queryServer();
 				final TileName n;
@@ -156,8 +158,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 					String path = n.buildPath();
 					if (path != null)
 						try {
-							sync(path);
-
+							HashSet<String> apt2 = sync(path);
+							apt.addAll(apt2);
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -166,6 +168,16 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 				synchronized (syncList) {
 					syncList.remove(n);
+				}
+			}
+			if (apt != null) {
+				for (int j = 0; j < apt.size(); ++j)
+					invokeLater(3); // extend progressBar
+				try {
+					syncAirports(apt.toArray(new String[0]));
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
 
@@ -177,31 +189,34 @@ public class HTTPTerraSync extends Thread implements TileService {
 	/**
 	 * 
 	 * @param path
+	 * @return
 	 * @throws IOException
 	 */
 
-	private void sync(String path) throws IOException {
+	private HashSet<String> sync(String path) throws IOException {
 		try {
 			syncDirectory("Terrain/" + path);
 			invokeLater(2); // update progressBar
 			syncDirectory("Objects/" + path);
 			invokeLater(2); // update progressBar
-			String[] apt = findAirports(new File(localBaseDir, "Terrain/"
-					+ path));
-			if (apt != null) {
-				for (int j = 0; j < apt.length; ++j)
-					invokeLater(3); // extend progressBar
-				syncAirports(apt);
-			}
+			HashSet<String> apt = findAirports(new File(localBaseDir,
+					"Terrain/" + path));
+			return apt;
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return null;
 	}
 
-	// returns an array of unique 3-char prefixes
-	private String[] findAirports(File d) {
+	/**
+	 * returns an array of unique 3-char prefixes
+	 * 
+	 * @param d
+	 * @return
+	 */
+	private HashSet<String> findAirports(File d) {
 		HashSet<String> set = new HashSet<String>();
 
 		for (File f : d.listFiles()) {
@@ -210,16 +225,20 @@ public class HTTPTerraSync extends Thread implements TileService {
 				set.add(n.substring(0, 3));
 			}
 		}
-		return set.toArray(new String[1]);
+		return set;
 	}
 
 	// sync "Airports/W/A/T"
 	private void syncAirports(String[] names) throws IOException {
 		long rev;
 
+		HashSet<String> nodes = new HashSet<String>();
 		for (String i : names) {
 			String node = String.format("Airports/%c/%c/%c", i.charAt(0),
 					i.charAt(1), i.charAt(2));
+			nodes.add(node);
+		}
+		for (String node : nodes) {
 			syncDirectory(node);
 		}
 	}
@@ -386,10 +405,11 @@ public class HTTPTerraSync extends Thread implements TileService {
 		}
 		return digest.digest();
 	}
-	
+
 	/**
-	 * Queries the DNS Server for the records pointing to the terrasync servers. 
-	 * Always queries 8.8.8.8 (Google). If nothing is received it uses the last ones
+	 * Queries the DNS Server for the records pointing to the terrasync servers.
+	 * Always queries 8.8.8.8 (Google). If nothing is received it uses the last
+	 * ones
 	 */
 
 	private void queryServer() {
@@ -754,7 +774,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 		}
 		if (!urls.isEmpty()) {
 			try {
-				ObjectOutputStream ois = new ObjectOutputStream(new FileOutputStream(TERRASYNC_SERVERS));
+				ObjectOutputStream ois = new ObjectOutputStream(
+						new FileOutputStream(TERRASYNC_SERVERS));
 				ois.writeObject(urls);
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
@@ -762,7 +783,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 			}
 		} else {
 			try {
-				ObjectInputStream ois = new ObjectInputStream(new FileInputStream(TERRASYNC_SERVERS));
+				ObjectInputStream ois = new ObjectInputStream(
+						new FileInputStream(TERRASYNC_SERVERS));
 				urls = (ArrayList<URL>) ois.readObject();
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
