@@ -18,6 +18,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Random;
@@ -151,7 +152,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 				if (name.startsWith("MODELS")) {
 					int i = name.indexOf('-');
 					if (i > -1)
-						syncDirectory(name.substring(i + 1));
+						syncDirectory(name.substring(i + 1), false);
 					else
 						syncModels();
 				} else {
@@ -195,9 +196,9 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	private HashSet<String> sync(String path) throws IOException {
 		try {
-			syncDirectory("Terrain/" + path);
+			syncDirectory("Terrain/" + path, false);
 			invokeLater(2); // update progressBar
-			syncDirectory("Objects/" + path);
+			syncDirectory("Objects/" + path, false);
 			invokeLater(2); // update progressBar
 			HashSet<String> apt = findAirports(new File(localBaseDir,
 					"Terrain/" + path));
@@ -239,7 +240,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 			nodes.add(node);
 		}
 		for (String node : nodes) {
-			syncDirectory(node);
+			syncDirectory(node, false);
 		}
 	}
 
@@ -314,28 +315,49 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	private void syncModels() {
 		try {
-			syncDirectory("Models");
+			syncDirectory("Models", false);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
-	private void syncDirectory(String path) {
+	/**
+	 * Syncs the given directory.
+	 * 
+	 * @param path
+	 * @param force
+	 */
+
+	private void syncDirectory(String path, boolean force) {
 		try {
 			if (cancelFlag)
 				return;
-			String dirIndex = new String(getFile(new URL(getBaseUrl()
+			String remoteDirIndex = new String(getFile(new URL(getBaseUrl()
 					.toExternalForm() + path + "/.dirindex")));
-			String[] lines = dirIndex.split("\r?\n");
+			String localDirIndex = readDirIndex(path);
+			String[] lines = remoteDirIndex.split("\r?\n");
+			String[] localLines = remoteDirIndex.split("\r?\n");
+			HashMap<String, String> lookup = new HashMap<String, String>();
+			for (int i = 0; i < localLines.length; i++) {
+				String line = localLines[i];
+				String[] splitLine = line.split(":");
+				if (splitLine.length > 2)
+					lookup.put(splitLine[1], splitLine[2]);
+			}
 			for (int i = 0; i < lines.length; i++) {
 				if (cancelFlag)
 					return;
 				String file = lines[i];
 				String[] splitLine = file.split(":");
 				if (file.startsWith("d:")) {
-					syncDirectory(path + "/" + splitLine[1]);
+					// We've got a directory if force ignore what we know
+					// otherwise check the SHA against
+					// the one from the server
+					if (force || !splitLine[2].equals(lookup.get(splitLine[1])))
+						syncDirectory(path + "/" + splitLine[1], force);
 				} else if (file.startsWith("f:")) {
+					// We've got a file
 					invokeLater(3);
 					File localFile = new File(localBaseDir, path
 							+ File.separator + splitLine[1]);
@@ -362,12 +384,24 @@ public class HTTPTerraSync extends Thread implements TileService {
 					invokeLater(2);
 				}
 				System.out.println(file);
-
 			}
+			storeDirIndex(path, remoteDirIndex);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	private String readDirIndex(String path) throws NoSuchAlgorithmException,
+			IOException {
+		File file = new File(new File(localBaseDir, path), ".dirindex");
+		return file.exists() ? new String(readFile(file)) : "";
+	}
+
+	private void storeDirIndex(String path, String remoteDirIndex)
+			throws IOException {
+		File file = new File(new File(localBaseDir, path), ".dirindex");
+		writeFile(file, remoteDirIndex);
 	}
 
 	final protected static char[] hexArray = "0123456789abcdef".toCharArray();
@@ -404,6 +438,38 @@ public class HTTPTerraSync extends Thread implements TileService {
 			}
 		}
 		return digest.digest();
+	}
+
+	/**
+	 * Reads the given File.
+	 * 
+	 * @param file
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws IOException
+	 */
+
+	private byte[] readFile(File file) throws IOException {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		InputStream fis = new FileInputStream(file);
+		int n = 0;
+		byte[] buffer = new byte[8192];
+		int off = 0;
+		while (n != -1) {
+			n = fis.read(buffer);
+			if (n > 0) {
+				bos.write(buffer, off, n);
+				off += n;
+			}
+		}
+		return bos.toByteArray();
+	}
+
+	private void writeFile(File file, String remoteDirIndex) throws IOException {
+		FileOutputStream fos = new FileOutputStream(file);
+		fos.write(remoteDirIndex.getBytes());
+		fos.flush();
+		fos.close();
 	}
 
 	/**
