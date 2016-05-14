@@ -14,7 +14,7 @@
 	<!-- ================================= 
           target: default              
          ================================= -->
-	<target name="default" depends="compile,jar" description="Tool to manage Flightgear scenery">
+	<target name="default" depends="compile,jar,src_zip" description="Tool to manage Flightgear scenery">
 
 	</target>
 
@@ -46,4 +46,17 @@
 		</jar>
 	</target>
 
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: jar                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="src_zip">
+		<zip destfile="terramaster_src.jar">
+			<fileset dir="src">
+				<include name="**/*" />
+			</fileset>
+			<fileset dir="resources">
+				<include name="**/*" />
+			</fileset>
+		</zip>
+	</target>
 </project>
