@@ -39,6 +39,7 @@ public class TerraMaster
 			AIRPORTS = 3;
 
   public static TileName tilenameManager;
+  /**The service getting the tiles*/
   public static TileService svn;
   public static FGMap fgmap;
   public static Properties props;

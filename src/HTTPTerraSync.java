@@ -152,7 +152,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 				if (name.startsWith("MODELS")) {
 					int i = name.indexOf('-');
 					if (i > -1)
-						syncDirectory(name.substring(i + 1), false);
+						syncDirectory(name.substring(i + 1), false,
+								TerraMaster.MODELS);
 					else
 						syncModels();
 				} else {
@@ -196,9 +197,9 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	private HashSet<String> sync(String path) throws IOException {
 		try {
-			syncDirectory("Terrain/" + path, false);
+			syncDirectory("Terrain/" + path, false, TerraMaster.TERRAIN);
 			invokeLater(2); // update progressBar
-			syncDirectory("Objects/" + path, false);
+			syncDirectory("Objects/" + path, false, TerraMaster.OBJECTS);
 			invokeLater(2); // update progressBar
 			HashSet<String> apt = findAirports(new File(localBaseDir,
 					"Terrain/" + path));
@@ -240,7 +241,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 			nodes.add(node);
 		}
 		for (String node : nodes) {
-			syncDirectory(node, false);
+			syncDirectory(node, false, TerraMaster.AIRPORTS);
 		}
 	}
 
@@ -315,7 +316,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	private void syncModels() {
 		try {
-			syncDirectory("Models", false);
+			syncDirectory("Models", false, TerraMaster.MODELS);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -327,9 +328,10 @@ public class HTTPTerraSync extends Thread implements TileService {
 	 * 
 	 * @param path
 	 * @param force
+	 * @param type
 	 */
 
-	private void syncDirectory(String path, boolean force) {
+	private void syncDirectory(String path, boolean force, int type) {
 		try {
 			if (cancelFlag)
 				return;
@@ -355,7 +357,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 					// otherwise check the SHA against
 					// the one from the server
 					if (force || !splitLine[2].equals(lookup.get(splitLine[1])))
-						syncDirectory(path + "/" + splitLine[1], force);
+						syncDirectory(path + "/" + splitLine[1], force, type);
 				} else if (file.startsWith("f:")) {
 					// We've got a file
 					invokeLater(3);
@@ -385,6 +387,9 @@ public class HTTPTerraSync extends Thread implements TileService {
 				}
 				System.out.println(file);
 			}
+			TerraMaster.addScnMapTile(TerraMaster.mapScenery, new File(
+					localBaseDir, path), type);
+
 			storeDirIndex(path, remoteDirIndex);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
