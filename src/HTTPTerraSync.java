@@ -42,6 +42,9 @@ import net.sf.ivmaidns.util.UnsignedInt;
 
 public class HTTPTerraSync extends Thread implements TileService {
 
+	private static final int RESET = 1;
+	private static final int UPDATE = 2;
+	private static final int EXTEND = 3;
 	private static final String TERRASYNC_SERVERS = "nameservers.bin";
 	private LinkedList<TileName> syncList = new LinkedList<TileName>();
 	private boolean cancelFlag = false;
@@ -141,6 +144,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 				}
 			}
 			HashSet<String> apt = new HashSet<String>();
+			invokeLater(EXTEND, syncList.size()*400+3000); // update progressBar
 			while (syncList.size() > 0) {
 				queryServer();
 				final TileName n;
@@ -157,10 +161,11 @@ public class HTTPTerraSync extends Thread implements TileService {
 					else
 						syncModels();
 				} else {
+					//Updating Terrain/Objects
 					String path = n.buildPath();
 					if (path != null)
 						try {
-							HashSet<String> apt2 = sync(path);
+							HashSet<String> apt2 = syncTile(path);
 							apt.addAll(apt2);
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
@@ -173,8 +178,6 @@ public class HTTPTerraSync extends Thread implements TileService {
 				}
 			}
 			if (apt != null) {
-				for (int j = 0; j < apt.size(); ++j)
-					invokeLater(3); // extend progressBar
 				try {
 					syncAirports(apt.toArray(new String[0]));
 				} catch (IOException e) {
@@ -184,7 +187,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 			}
 
 			// syncList is now empty
-			invokeLater(1); // reset progressBar
+			invokeLater(RESET, 0); // reset progressBar
 		}
 	}
 
@@ -195,12 +198,13 @@ public class HTTPTerraSync extends Thread implements TileService {
 	 * @throws IOException
 	 */
 
-	private HashSet<String> sync(String path) throws IOException {
+	private HashSet<String> syncTile(String path) throws IOException {
 		try {
-			syncDirectory("Terrain/" + path, false, TerraMaster.TERRAIN);
-			invokeLater(2); // update progressBar
+			int updates = syncDirectory("Terrain/" + path, false,
+					TerraMaster.TERRAIN);
+			invokeLater(UPDATE, 200 - updates); // update progressBar
 			syncDirectory("Objects/" + path, false, TerraMaster.OBJECTS);
-			invokeLater(2); // update progressBar
+			invokeLater(UPDATE, 200 - updates); // update progressBar
 			HashSet<String> apt = findAirports(new File(localBaseDir,
 					"Terrain/" + path));
 			return apt;
@@ -240,8 +244,10 @@ public class HTTPTerraSync extends Thread implements TileService {
 					i.charAt(1), i.charAt(2));
 			nodes.add(node);
 		}
+		invokeLater(UPDATE, 3000 - nodes.size()*100);
 		for (String node : nodes) {
-			syncDirectory(node, false, TerraMaster.AIRPORTS);
+			int updates = syncDirectory(node, false, TerraMaster.AIRPORTS);
+			invokeLater(UPDATE, 100 - updates);
 		}
 	}
 
@@ -329,12 +335,14 @@ public class HTTPTerraSync extends Thread implements TileService {
 	 * @param path
 	 * @param force
 	 * @param type
+	 * @return
 	 */
 
-	private void syncDirectory(String path, boolean force, int type) {
+	private int syncDirectory(String path, boolean force, int type) {
 		try {
+			int updates = 0;
 			if (cancelFlag)
-				return;
+				return updates;
 			String remoteDirIndex = new String(getFile(new URL(getBaseUrl()
 					.toExternalForm() + path + "/.dirindex")));
 			String localDirIndex = readDirIndex(path);
@@ -349,7 +357,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 			}
 			for (int i = 0; i < lines.length; i++) {
 				if (cancelFlag)
-					return;
+					return updates;
 				String file = lines[i];
 				String[] splitLine = file.split(":");
 				if (file.startsWith("d:")) {
@@ -357,10 +365,10 @@ public class HTTPTerraSync extends Thread implements TileService {
 					// otherwise check the SHA against
 					// the one from the server
 					if (force || !splitLine[2].equals(lookup.get(splitLine[1])))
-						syncDirectory(path + "/" + splitLine[1], force, type);
+						updates += syncDirectory(path + "/" + splitLine[1],
+								force, type);
 				} else if (file.startsWith("f:")) {
 					// We've got a file
-					invokeLater(3);
 					File localFile = new File(localBaseDir, path
 							+ File.separator + splitLine[1]);
 					boolean load = true;
@@ -383,18 +391,22 @@ public class HTTPTerraSync extends Thread implements TileService {
 						fos.flush();
 						fos.close();
 					}
-					invokeLater(2);
+					invokeLater(UPDATE, 1);
+					updates++;
 				}
 				System.out.println(file);
 			}
-			TerraMaster.addScnMapTile(TerraMaster.mapScenery, new File(
-					localBaseDir, path), type);
+			if (type == TerraMaster.OBJECTS || type == TerraMaster.TERRAIN)
+				TerraMaster.addScnMapTile(TerraMaster.mapScenery, new File(
+						localBaseDir, path), type);
 
 			storeDirIndex(path, remoteDirIndex);
+			return updates;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return 0;
 	}
 
 	private String readDirIndex(String path) throws NoSuchAlgorithmException,
@@ -867,12 +879,20 @@ public class HTTPTerraSync extends Thread implements TileService {
 		}
 	}
 
-	private void invokeLater(final int n) {
+	/**
+	 * Does the Async notification of the GUI
+	 * 
+	 * @param n
+	 */
+
+	private void invokeLater(final int n, final int num) {
+		if( num < 0 )
+			System.out.println("Update < 0");
 		// invoke this on the Event Disp Thread
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				switch (n) {
-				case 1: // reset progressBar
+				case RESET: // reset progressBar
 					TerraMaster.frame.butStop.setEnabled(false);
 					try {
 						Thread.sleep(1200);
@@ -881,13 +901,13 @@ public class HTTPTerraSync extends Thread implements TileService {
 					TerraMaster.frame.progressBar.setMaximum(0);
 					TerraMaster.frame.progressBar.setVisible(false);
 					break;
-				case 2: // update progressBar
-					TerraMaster.frame.progressUpdate(1);
+				case UPDATE: // update progressBar
+					TerraMaster.frame.progressUpdate(num);
 					break;
-				case 3: // progressBar maximum++
+				case EXTEND: // progressBar maximum++
 					TerraMaster.frame.progressBar
 							.setMaximum(TerraMaster.frame.progressBar
-									.getMaximum() + 1);
+									.getMaximum() + num);
 					break;
 				}
 			}
