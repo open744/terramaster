@@ -60,14 +60,14 @@ public class SettingsDialog extends JDialog {
 			txtScenerypath.setColumns(10);
 		}
 		{
-			final JButton button = new JButton("...");
-			button.addActionListener(new ActionListener() {
+			final JButton selectDirectoryButton = new JButton("...");
+			selectDirectoryButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					JFileChooser fc = new JFileChooser();
 					fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 					fc.setCurrentDirectory(new File(txtScenerypath.getText()));
 
-					if (fc.showOpenDialog(button) == JFileChooser.APPROVE_OPTION) {
+					if (fc.showOpenDialog(selectDirectoryButton) == JFileChooser.APPROVE_OPTION) {
 						File f = fc.getSelectedFile();
 						fc.setCurrentDirectory(f);
 						txtScenerypath.setText(f.getAbsolutePath());
@@ -75,11 +75,11 @@ public class SettingsDialog extends JDialog {
 
 				}
 			});
-			GridBagConstraints gbc_button = new GridBagConstraints();
-			gbc_button.insets = new Insets(0, 0, 5, 0);
-			gbc_button.gridx = 2;
-			gbc_button.gridy = 0;
-			contentPanel.add(button, gbc_button);
+			GridBagConstraints gbc_selectDirectoryButton = new GridBagConstraints();
+			gbc_selectDirectoryButton.insets = new Insets(0, 0, 5, 0);
+			gbc_selectDirectoryButton.gridx = 2;
+			gbc_selectDirectoryButton.gridy = 0;
+			contentPanel.add(selectDirectoryButton, gbc_selectDirectoryButton);
 		}
 		{
 			JLabel lblScenerySource = new JLabel("Scenery Source :");
@@ -141,6 +141,18 @@ public class SettingsDialog extends JDialog {
 			}
 		}
 		txtScenerypath.setText((String) TerraMaster.props.get(TerraMasterProperties.SCENERY_PATH));
+		{
+			JButton addSettingsButton = new JButton("...");
+			addSettingsButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					
+				}
+			});
+			GridBagConstraints gbc_addSettingsButton = new GridBagConstraints();
+			gbc_addSettingsButton.gridx = 2;
+			gbc_addSettingsButton.gridy = 1;
+			contentPanel.add(addSettingsButton, gbc_addSettingsButton);
+		}
 	}
 
 }
