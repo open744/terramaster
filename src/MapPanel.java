@@ -469,6 +469,8 @@ class MapPanel extends JPanel {
 	}
 
 	void showSyncList(Graphics g) {
+    if(TerraMaster.svn==null)
+      return;	  
 		Collection<TileName> a = TerraMaster.svn.getSyncList();
 		if (a == null)
 			return;
@@ -569,6 +571,8 @@ class MapPanel extends JPanel {
 		g.setColor(Color.gray);
 		drawGraticule(g, 10);
 
+		if(TerraMaster.mapScenery==null)
+		 return;
 		Set<TileName> keys = TerraMaster.mapScenery.keySet();
 		Pattern p = Pattern
 				.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
@@ -601,6 +605,8 @@ class MapPanel extends JPanel {
 	}
 
 	void showAirports(Graphics g0) {
+	  if(TerraMaster.fgmap==null)	
+	    return;
 		Graphics2D g = (Graphics2D) g0.create();
 		HashMap<String, Airport> apts = TerraMaster.fgmap.getAirportList();
 		Point2D.Double p = new Point2D.Double();
