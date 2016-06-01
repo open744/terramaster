@@ -1,4 +1,6 @@
 import	java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import	java.io.File;
 import	java.io.IOException;
 import	java.io.BufferedReader;
@@ -22,6 +24,8 @@ import	org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
 
 class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExternalsHandler, TileService
 {
+  Logger LOG = Logger.getLogger(this.getClass().getName());
+
   SVNClientManager clientManager;
   SVNUpdateClient updateClient;
   SVNStatusClient statusClient;
@@ -49,6 +53,12 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
     // externals stuff
     updateClient.setExternalsHandler(this);
 
+    checkURL();
+  }
+
+  private synchronized void checkURL() {
+    if(urlBase != null)
+      return;
     // 2015-12-28 use FG scenery server redirector
     try {
       char[] buf = new char[256];
@@ -56,8 +66,9 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
         new java.net.URL("http://scenery.flightgear.org/svn-server")
           .openStream())).read(buf, 0, 256);
       urlBase = new String(buf).trim();
-      System.out.println("SVN server is " + urlBase);
+      LOG.info("SVN server is " + urlBase);
     } catch (IOException e) {
+      LOG.log(Level.WARNING, e.toString());      
     }
   }
 
@@ -67,9 +78,10 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
     SVNRevision externalPegRevision, java.lang.String externalsDefinition,
     SVNRevision externalsWorkingRevision)
   {
-    System.out.printf("Externals: %d %d -> ", externalRevision, externalPegRevision);
+    String.format("Externals: %d %d -> ", externalRevision, externalPegRevision);
+    LOG.info(String.format("Externals: %d %d -> ", externalRevision, externalPegRevision));
     SVNRevision[] ret = ISVNExternalsHandler.DEFAULT.handleExternal(externalPath, externalURL, externalRevision, externalPegRevision, externalsDefinition, externalsWorkingRevision);
-    System.out.println(ret);
+    LOG.info(ret.toString());
     return ret;
   }
 
@@ -89,12 +101,12 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
   {
     try {
       boolean stat = statusClient.doStatus(f, false).isVersioned();
-      //System.out.printf("Info: %s exists and is versioned.\n", f.toString());
+      //LOG.info(String.format(("Info: %s exists and is versioned.\n", f.toString());
     } catch (SVNException e) {
       // allowUnversionedObstructions = true
       long rev = updateClient.doCheckout(url, f, SVNRevision.HEAD,
 					 SVNRevision.HEAD, SVNDepth.EMPTY, true);
-      System.out.printf("Created working copy %s.\n", f.toString());
+      LOG.info(String.format("Created working copy %s.\n", f.toString()));
     }
   }
 
@@ -124,20 +136,20 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
       SVNURL url = SVNURL.parseURIEncoded(urlBase + path);
       synccount = syncsize = 0;
       logClient.doList(url, SVNRevision.HEAD, SVNRevision.HEAD, false, true, this);
-      System.out.printf("%s/%d items (%d bytes)... ", path, synccount, syncsize);
+      LOG.info(String.format("%s/%d items (%d bytes)... ", path, synccount, syncsize));
     } catch (SVNException e) {
       SVNErrorMessage em = e.getErrorMessage();
       if (em.getErrorCode().getCode() == 160013)
-	System.err.printf("%s not found\n", path);
+        LOG.warning(String.format("%s not found\n", path));
       else
-	System.err.printf("doList: %s\n", e.getMessage());
+        LOG.warning(String.format("doList: %s\n", e.getMessage()));
     }
   }
 
   /*
   SVNStatus stat = statusClient.doStatus(pathBase +
       "Terrain/e140s40/e144s38/"), true);
-  System.out.println(stat.getURL());
+  LOG.info(stat.getURL());
   */
 
   // syncs the tile's Terrain then Objects, then any Airports within
@@ -150,9 +162,10 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
     try {
       verifyRoot(new File(pathBase), SVNURL.parseURIEncoded(urlBase));
     } catch (SVNException e) {
+      LOG.log(Level.WARNING, e.toString(), e);      
     }
 
-    System.out.print("sync "+name+"... ");
+    LOG.info("sync "+name+"... ");
 
     for (int i = 0; i < types.length; ++i) {
       String node = types[i]+name;
@@ -166,7 +179,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
       invokeLater(2);		// update progressBar
 
       if (rev > 0) {
-	System.out.printf("updated to r%d.\n", rev);
+	LOG.info(String.format("updated to r%d.\n", rev));
 	TerraMaster.addScnMapTile(TerraMaster.mapScenery, f, ntype[i]);
 
 	// look for airport codes among the newly sync'd Terrain files
@@ -185,10 +198,11 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
         SVNErrorMessage em = x.getErrorMessage();
         // E160013 = URL not found
         //if (em.getErrorCode().getCode() != 160013)
-          System.out.println(x.getMessage());
+          LOG.info(x.getMessage());
 	// 155004 unfinished work items, need svn cleanup
-      } catch (Exception x) { System.out.println(x); }
-
+      } catch (Exception x) { 
+        LOG.log(Level.WARNING, x.toString(), x);      
+      }
     }
   }
 
@@ -203,7 +217,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
         set.add(n.substring(0, 3));
       }
     }
-    return set.toArray(new String[1]);
+    return set.toArray(new String[0]);
   }
 
   // sync "Airports/W/A/T"
@@ -220,9 +234,9 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
 	printStats(node);
 	rev = updateNode(f);
 	invokeLater(2);		// update progressBar
-	if (rev > 0) System.out.printf("updated to r%d.\n", rev);
+	if (rev > 0) LOG.info(String.format("updated to r%d.\n", rev));
       } catch (SVNException x) {
-        System.out.println(x.getMessage());
+        LOG.info(x.getMessage());
       }
     }
   }
@@ -236,9 +250,10 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
       File f = new File(pathBase + "Models/" + name);
       long rev = updateNode(f);
       invokeLater(2);		// update progressBar
-      if (rev > 0) System.out.printf("updated to r%d.\n", rev);
+      if (rev > 0) 
+        LOG.info(String.format("updated to r%d.\n", rev));
     } catch (SVNException x) {
-      System.out.println(x.getMessage());
+      LOG.info(x.getMessage());
     } 
   }
 
@@ -257,7 +272,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
       list[0] = d;
       long[] rev = updateClient.doUpdate(list, SVNRevision.HEAD, SVNDepth.IMMEDIATES, true, true, true);
     } catch (SVNException x) {
-      System.out.println(x.getMessage());
+      LOG.info(x.getMessage());
       return;
     } finally {
       invokeLater(2);		// update progressBar
@@ -347,6 +362,8 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller, ISVNExte
 	catch (InterruptedException e) { }
       }
       while (syncList.size() > 0) {
+        checkURL();
+
 	final TileName n;
 	synchronized(syncList) {
 	  n = syncList.getFirst();

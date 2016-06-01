@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,876 +43,857 @@ import net.sf.ivmaidns.util.UnsignedInt;
 
 public class HTTPTerraSync extends Thread implements TileService {
 
-	private static final int RESET = 1;
-	private static final int UPDATE = 2;
-	private static final int EXTEND = 3;
-	private static final String TERRASYNC_SERVERS = "nameservers.bin";
-	private LinkedList<TileName> syncList = new LinkedList<TileName>();
-	private boolean cancelFlag = false;
-	private boolean noquit = true;
+  Logger LOG = Logger.getLogger(this.getClass().getName());
 
-	private ArrayList<URL> urls = new ArrayList<URL>();
-	Random rand = new Random();
-	private File localBaseDir;
+  private static final int RESET = 1;
+  private static final int UPDATE = 2;
+  private static final int EXTEND = 3;
+  private static final String TERRASYNC_SERVERS = "nameservers.bin";
+  private LinkedList<TileName> syncList = new LinkedList<TileName>();
+  private boolean cancelFlag = false;
+  private boolean noquit = true;
 
-	public HTTPTerraSync() {
-		super("HTTPTerraSync");
-	}
+  private ArrayList<URL> urls = new ArrayList<URL>();
+  Random rand = new Random();
+  private File localBaseDir;
 
-	@Override
-	public void setScnPath(File file) {
-		localBaseDir = file;
-	}
+  public HTTPTerraSync() {
+    super("HTTPTerraSync");
+  }
 
-	@Override
-	public void sync(Collection<TileName> set) {
-		synchronized (syncList) {
-			syncList.addAll(set);
-			cancelFlag = false;
-		}
-		synchronized (this) {
-			try {
-				notify();
-			} // wake up the main loop
-			catch (IllegalMonitorStateException e) {
-			}
-		}
-	}
+  @Override
+  public void setScnPath(File file) {
+    localBaseDir = file;
+  }
 
-	@Override
-	public Collection<TileName> getSyncList() {
-		return syncList;
-	}
+  @Override
+  public void sync(Collection<TileName> set) {
+    synchronized (syncList) {
+      syncList.addAll(set);
+      cancelFlag = false;
+    }
+    synchronized (this) {
+      try {
+        notify();
+      } // wake up the main loop
+      catch (IllegalMonitorStateException e) {
+        e.printStackTrace();
+      }
+    }
+  }
 
-	@Override
-	public void quit() {
-		// TODO Auto-generated method stub
+  @Override
+  public Collection<TileName> getSyncList() {
+    return syncList;
+  }
 
-	}
+  @Override
+  public void quit() {
+    // TODO Auto-generated method stub
 
-	@Override
-	public void cancel() {
-		cancelFlag = true;
-		synchronized (syncList) {
-			syncList.clear();
-		}
-	}
+  }
 
-	@Override
-	public void delete(Collection<TileName> selection) {
-		for (TileName n : selection) {
-			TileData d = TerraMaster.mapScenery.remove(n);
-			if (d == null)
-				continue;
-			if (d.terrain) {
-				deltree(d.dir_terr);
-			}
+  @Override
+  public void cancel() {
+    cancelFlag = true;
+    synchronized (syncList) {
+      syncList.clear();
+    }
+    try {
+      if (httpConn != null && httpConn.getInputStream() != null) {
+        httpConn.getInputStream().close();
+      }
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+  }
 
-			if (d.objects) {
-				deltree(d.dir_obj);
-			}
+  @Override
+  public void delete(Collection<TileName> selection) {
+    for (TileName n : selection) {
+      TileData d = TerraMaster.mapScenery.remove(n);
+      if (d == null)
+        continue;
+      if (d.terrain) {
+        deltree(d.dir_terr);
+      }
 
-			synchronized (syncList) {
-				syncList.remove(n);
-			}
-		}
-	}
+      if (d.objects) {
+        deltree(d.dir_obj);
+      }
 
-	private void deltree(File d) {
-		if (!d.exists())
-			return;
-		for (File f : d.listFiles()) {
-			if (f.isDirectory())
-				deltree(f);
-			try {
-				f.delete();
-			} catch (SecurityException x) {
-			}
-		}
-		try {
-			d.delete();
-		} catch (SecurityException x) {
-		}
-	}
+      synchronized (syncList) {
+        syncList.remove(n);
+      }
+    }
+  }
 
-	@Override
-	public void run() {
-		while (noquit) {
-			synchronized (this) {
-				try {
-					wait();
-				} catch (InterruptedException e) {
-				}
-			}
-			HashSet<String> apt = new HashSet<String>();
-			invokeLater(EXTEND, syncList.size()*400+3000); // update progressBar
-			while (syncList.size() > 0) {
-				queryServer();
-				final TileName n;
-				synchronized (syncList) {
-					n = syncList.getFirst();
-				}
+  private void deltree(File d) {
+    if (!d.exists())
+      return;
+    for (File f : d.listFiles()) {
+      if (f.isDirectory())
+        deltree(f);
+      try {
+        f.delete();
+      } catch (SecurityException x) {
+      }
+    }
+    try {
+      d.delete();
+    } catch (SecurityException x) {
+    }
+  }
 
-				String name = n.getName();
-				if (name.startsWith("MODELS")) {
-					int i = name.indexOf('-');
-					if (i > -1)
-						syncDirectory(name.substring(i + 1), false,
-								TerraMaster.MODELS);
-					else
-						syncModels();
-				} else {
-					//Updating Terrain/Objects
-					String path = n.buildPath();
-					if (path != null)
-						try {
-							HashSet<String> apt2 = syncTile(path);
-							apt.addAll(apt2);
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-				}
+  @Override
+  public void run() {
+    while (noquit) {
+      synchronized (this) {
+        try {
+          wait();
+        } catch (InterruptedException e) {
+        }
+      }
+      HashSet<String> apt = new HashSet<String>();
+      invokeLater(EXTEND, syncList.size() * 400 + 3000); // update progressBar
+      while (syncList.size() > 0) {
+        queryServer();
+        final TileName n;
+        synchronized (syncList) {
+          n = syncList.getFirst();
+        }
 
-				synchronized (syncList) {
-					syncList.remove(n);
-				}
-			}
-			if (apt != null) {
-				try {
-					syncAirports(apt.toArray(new String[0]));
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
+        String name = n.getName();
+        if (name.startsWith("MODELS")) {
+          int i = name.indexOf('-');
+          if (i > -1)
+            syncDirectory(name.substring(i + 1), false, TerraMaster.MODELS);
+          else
+            syncModels();
+        } else {
+          // Updating Terrain/Objects
+          String path = n.buildPath();
+          if (path != null)
+            try {
+              HashSet<String> apt2 = syncTile(path);
+              apt.addAll(apt2);
+            } catch (IOException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+            }
+        }
 
-			// syncList is now empty
-			invokeLater(RESET, 0); // reset progressBar
-		}
-	}
+        synchronized (syncList) {
+          syncList.remove(n);
+        }
+      }
+      if (apt != null) {
+        try {
+          syncAirports(apt.toArray(new String[0]));
+        } catch (IOException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
+      }
 
-	/**
-	 * 
-	 * @param path
-	 * @return
-	 * @throws IOException
-	 */
+      // syncList is now empty
+      invokeLater(RESET, 0); // reset progressBar
+    }
+  }
 
-	private HashSet<String> syncTile(String path) throws IOException {
-		try {
-			int updates = syncDirectory("Terrain/" + path, false,
-					TerraMaster.TERRAIN);
-			invokeLater(UPDATE, 200 - updates); // update progressBar
-			syncDirectory("Objects/" + path, false, TerraMaster.OBJECTS);
-			invokeLater(UPDATE, 200 - updates); // update progressBar
-			HashSet<String> apt = findAirports(new File(localBaseDir,
-					"Terrain/" + path));
-			return apt;
+  /**
+   * 
+   * @param path
+   * @return
+   * @throws IOException
+   */
 
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-	}
+  private HashSet<String> syncTile(String path) throws IOException {
+    try {
+      int updates = syncDirectory("Terrain/" + path, false, TerraMaster.TERRAIN);
+      invokeLater(UPDATE, 200 - updates); // update progressBar
+      syncDirectory("Objects/" + path, false, TerraMaster.OBJECTS);
+      invokeLater(UPDATE, 200 - updates); // update progressBar
+      HashSet<String> apt = findAirports(new File(localBaseDir, "Terrain/"
+          + path));
+      return apt;
 
-	/**
-	 * returns an array of unique 3-char prefixes
-	 * 
-	 * @param d
-	 * @return
-	 */
-	private HashSet<String> findAirports(File d) {
-		HashSet<String> set = new HashSet<String>();
+    } catch (Exception e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return null;
+  }
 
-		for (File f : d.listFiles()) {
-			String n = TileName.getAirportCode(f.getName());
-			if (n != null) {
-				set.add(n.substring(0, 3));
-			}
-		}
-		return set;
-	}
+  /**
+   * returns an array of unique 3-char prefixes
+   * 
+   * @param d
+   * @return
+   */
+  private HashSet<String> findAirports(File d) {
+    HashSet<String> set = new HashSet<String>();
 
-	// sync "Airports/W/A/T"
-	private void syncAirports(String[] names) throws IOException {
-		long rev;
+    for (File f : d.listFiles()) {
+      String n = TileName.getAirportCode(f.getName());
+      if (n != null) {
+        set.add(n.substring(0, 3));
+      }
+    }
+    return set;
+  }
 
-		HashSet<String> nodes = new HashSet<String>();
-		for (String i : names) {
-			String node = String.format("Airports/%c/%c/%c", i.charAt(0),
-					i.charAt(1), i.charAt(2));
-			nodes.add(node);
-		}
-		invokeLater(UPDATE, 3000 - nodes.size()*100);
-		for (String node : nodes) {
-			int updates = syncDirectory(node, false, TerraMaster.AIRPORTS);
-			invokeLater(UPDATE, 100 - updates);
-		}
-	}
+  // sync "Airports/W/A/T"
+  private void syncAirports(String[] names) throws IOException {
+    long rev;
 
-	private URL getBaseUrl() {
-		// TODO Auto-generated method stub
-		return urls.get(rand.nextInt(urls.size()));
-	}
+    HashSet<String> nodes = new HashSet<String>();
+    for (String i : names) {
+      String node = String.format("Airports/%c/%c/%c", i.charAt(0),
+          i.charAt(1), i.charAt(2));
+      nodes.add(node);
+    }
+    invokeLater(UPDATE, 3000 - nodes.size() * 100);
+    for (String node : nodes) {
+      int updates = syncDirectory(node, false, TerraMaster.AIRPORTS);
+      invokeLater(UPDATE, 100 - updates);
+    }
+  }
 
-	/**
-	 * Downloads a File into a byte[]
-	 * 
-	 * @param fileURL
-	 * @return
-	 * @throws IOException
-	 * @throws FileNotFoundException
-	 */
+  private URL getBaseUrl() {
+    // TODO Auto-generated method stub
+    return urls.get(rand.nextInt(urls.size()));
+  }
 
-	private byte[] getFile(URL fileURL) throws IOException,
-			FileNotFoundException {
-		System.out.println(fileURL.toExternalForm());
-		HttpURLConnection httpConn = (HttpURLConnection) fileURL
-				.openConnection();
-		int responseCode = (httpConn).getResponseCode();
+  /**
+   * Downloads a File into a byte[]
+   * 
+   * @param fileURL
+   * @return
+   * @throws IOException
+   * @throws FileNotFoundException
+   */
 
-		if (responseCode == HttpURLConnection.HTTP_OK) {
-			String fileName = "";
-			String disposition = httpConn.getHeaderField("Content-Disposition");
-			String contentType = httpConn.getContentType();
-			int contentLength = httpConn.getContentLength();
+  private byte[] getFile(URL fileURL) throws IOException, FileNotFoundException {
+    LOG.info(fileURL.toExternalForm());
+    httpConn = (HttpURLConnection) fileURL.openConnection();
+    int responseCode = (httpConn).getResponseCode();
 
-			if (disposition != null) {
-				// extracts file name from header field
-				int index = disposition.indexOf("filename=");
-				if (index > 0) {
-					fileName = disposition.substring(index + 10,
-							disposition.length() - 1);
-				}
-			} else {
-				fileName = fileURL.getFile();
-			}
+    if (responseCode == HttpURLConnection.HTTP_OK) {
+      String fileName = "";
+      String disposition = httpConn.getHeaderField("Content-Disposition");
+      String contentType = httpConn.getContentType();
+      int contentLength = httpConn.getContentLength();
 
-			System.out.println("Content-Type = " + contentType);
-			System.out.println("Content-Disposition = " + disposition);
-			System.out.println("Content-Length = " + contentLength);
-			System.out.println("fileName = " + fileName);
+      if (disposition != null) {
+        // extracts file name from header field
+        int index = disposition.indexOf("filename=");
+        if (index > 0) {
+          fileName = disposition
+              .substring(index + 10, disposition.length() - 1);
+        }
+      } else {
+        fileName = fileURL.getFile();
+      }
 
-			// opens input stream from the HTTP connection
-			InputStream inputStream = httpConn.getInputStream();
+      LOG.info("Content-Type = " + contentType);
+      LOG.info("Content-Disposition = " + disposition);
+      LOG.info("Content-Length = " + contentLength);
+      LOG.info("fileName = " + fileName);
 
-			// opens an output stream to save into file
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+      // opens input stream from the HTTP connection
+      InputStream inputStream = httpConn.getInputStream();
 
-			int bytesRead = -1;
-			byte[] buffer = new byte[1024];
-			while ((bytesRead = inputStream.read(buffer)) != -1) {
-				outputStream.write(buffer, 0, bytesRead);
-			}
+      // opens an output stream to save into file
+      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-			outputStream.close();
-			inputStream.close();
+      int bytesRead = -1;
+      byte[] buffer = new byte[1024];
+      while ((bytesRead = inputStream.read(buffer)) != -1) {
+        outputStream.write(buffer, 0, bytesRead);
+      }
 
-			System.out.println("File downloaded");
-			return outputStream.toByteArray();
-		} else {
-			System.out
-					.println("No file to download. Server replied HTTP code: "
-							+ responseCode);
-		}
-		httpConn.disconnect();
-		return null;
-	}
+      outputStream.close();
+      inputStream.close();
 
-	private void syncModels() {
-		try {
-			syncDirectory("Models", false, TerraMaster.MODELS);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+      LOG.info("File downloaded");
+      return outputStream.toByteArray();
+    } else {
+      LOG.infoln("No file to download. Server replied HTTP code: "
+          + responseCode);
+    }
+    httpConn.disconnect();
+    return null;
+  }
 
-	/**
-	 * Syncs the given directory.
-	 * 
-	 * @param path
-	 * @param force
-	 * @param type
-	 * @return
-	 */
+  private void syncModels() {
+    try {
+      syncDirectory("Models", false, TerraMaster.MODELS);
+    } catch (Exception e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+  }
 
-	private int syncDirectory(String path, boolean force, int type) {
-		try {
-			int updates = 0;
-			if (cancelFlag)
-				return updates;
-			String remoteDirIndex = new String(getFile(new URL(getBaseUrl()
-					.toExternalForm() + path + "/.dirindex")));
-			String localDirIndex = readDirIndex(path);
-			String[] lines = remoteDirIndex.split("\r?\n");
-			String[] localLines = remoteDirIndex.split("\r?\n");
-			HashMap<String, String> lookup = new HashMap<String, String>();
-			for (int i = 0; i < localLines.length; i++) {
-				String line = localLines[i];
-				String[] splitLine = line.split(":");
-				if (splitLine.length > 2)
-					lookup.put(splitLine[1], splitLine[2]);
-			}
-			for (int i = 0; i < lines.length; i++) {
-				if (cancelFlag)
-					return updates;
-				String file = lines[i];
-				String[] splitLine = file.split(":");
-				if (file.startsWith("d:")) {
-					// We've got a directory if force ignore what we know
-					// otherwise check the SHA against
-					// the one from the server
-					if (force || !splitLine[2].equals(lookup.get(splitLine[1])))
-						updates += syncDirectory(path + "/" + splitLine[1],
-								force, type);
-				} else if (file.startsWith("f:")) {
-					// We've got a file
-					File localFile = new File(localBaseDir, path
-							+ File.separator + splitLine[1]);
-					boolean load = true;
-					if (localFile.exists()) {
-						System.out.println(localFile.getAbsolutePath());
-						byte[] b = calcSHA1(localFile);
-						String bytesToHex = bytesToHex(b);
-						// System.out.println(bytesToHex);
-						load = !splitLine[2].equals(bytesToHex);
-					} else {
-						if (!localFile.getParentFile().exists()) {
-							localFile.getParentFile().mkdirs();
-						}
-					}
-					if (load) {
-						byte[] fileContent = getFile(new URL(getBaseUrl()
-								.toExternalForm() + path + "/" + splitLine[1]));
-						FileOutputStream fos = new FileOutputStream(localFile);
-						fos.write(fileContent);
-						fos.flush();
-						fos.close();
-					}
-					invokeLater(UPDATE, 1);
-					updates++;
-				}
-				System.out.println(file);
-			}
-			if (type == TerraMaster.OBJECTS || type == TerraMaster.TERRAIN)
-				TerraMaster.addScnMapTile(TerraMaster.mapScenery, new File(
-						localBaseDir, path), type);
+  /**
+   * Syncs the given directory.
+   * 
+   * @param path
+   * @param force
+   * @param type
+   * @return
+   */
 
-			storeDirIndex(path, remoteDirIndex);
-			return updates;
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return 0;
-	}
+  private int syncDirectory(String path, boolean force, int type) {
+    try {
+      int updates = 0;
+      if (cancelFlag)
+        return updates;
+      String remoteDirIndex = new String(getFile(new URL(getBaseUrl()
+          .toExternalForm() + path + "/.dirindex")));
+      String localDirIndex = readDirIndex(path);
+      String[] lines = remoteDirIndex.split("\r?\n");
+      String[] localLines = localDirIndex.split("\r?\n");
+      HashMap<String, String> lookup = new HashMap<String, String>();
+      for (int i = 0; i < localLines.length; i++) {
+        String line = localLines[i];
+        String[] splitLine = line.split(":");
+        if (splitLine.length > 2)
+          lookup.put(splitLine[1], splitLine[2]);
+      }
+      for (int i = 0; i < lines.length; i++) {
+        if (cancelFlag)
+          return updates;
+        String file = lines[i];
+        String[] splitLine = file.split(":");
+        if (file.startsWith("d:")) {
+          // We've got a directory if force ignore what we know
+          // otherwise check the SHA against
+          // the one from the server
+          if (force || !splitLine[2].equals(lookup.get(splitLine[1])))
+            updates += syncDirectory(path + "/" + splitLine[1], force, type);
+        } else if (file.startsWith("f:")) {
+          // We've got a file
+          File localFile = new File(localBaseDir, path + File.separator
+              + splitLine[1]);
+          boolean load = true;
+          if (localFile.exists()) {
+            LOG.info(localFile.getAbsolutePath());
+            byte[] b = calcSHA1(localFile);
+            String bytesToHex = bytesToHex(b);
+            // LOG.info(bytesToHex);
+            load = !splitLine[2].equals(bytesToHex);
+          } else {
+            if (!localFile.getParentFile().exists()) {
+              localFile.getParentFile().mkdirs();
+            }
+          }
+          if (load) {
+            byte[] fileContent = getFile(new URL(getBaseUrl().toExternalForm()
+                + path + "/" + splitLine[1]));
+            FileOutputStream fos = new FileOutputStream(localFile);
+            fos.write(fileContent);
+            fos.flush();
+            fos.close();
+          }
+          invokeLater(UPDATE, 1);
+          updates++;
+        }
+        LOG.info(file);
+      }
+      if (type == TerraMaster.OBJECTS || type == TerraMaster.TERRAIN)
+        TerraMaster.addScnMapTile(TerraMaster.mapScenery, new File(
+            localBaseDir, path), type);
 
-	private String readDirIndex(String path) throws NoSuchAlgorithmException,
-			IOException {
-		File file = new File(new File(localBaseDir, path), ".dirindex");
-		return file.exists() ? new String(readFile(file)) : "";
-	}
+      storeDirIndex(path, remoteDirIndex);
+      return updates;
+    } catch (Exception e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return 0;
+  }
 
-	private void storeDirIndex(String path, String remoteDirIndex)
-			throws IOException {
-		File file = new File(new File(localBaseDir, path), ".dirindex");
-		writeFile(file, remoteDirIndex);
-	}
+  private String readDirIndex(String path) throws NoSuchAlgorithmException,
+      IOException {
+    File file = new File(new File(localBaseDir, path), ".dirindex");
+    return file.exists() ? new String(readFile(file)) : "";
+  }
 
-	final protected static char[] hexArray = "0123456789abcdef".toCharArray();
+  private void storeDirIndex(String path, String remoteDirIndex)
+      throws IOException {
+    File file = new File(new File(localBaseDir, path), ".dirindex");
+    writeFile(file, remoteDirIndex);
+  }
 
-	public String bytesToHex(byte[] bytes) {
-		char[] hexChars = new char[bytes.length * 2];
-		for (int j = 0; j < bytes.length; j++) {
-			int v = bytes[j] & 0xFF;
-			hexChars[j * 2] = hexArray[v >>> 4];
-			hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-		}
-		return new String(hexChars);
-	}
+  final protected static char[] hexArray = "0123456789abcdef".toCharArray();
+  private HttpURLConnection httpConn;
 
-	/**
-	 * Calculates the SHA1 Hash for the given File
-	 * 
-	 * @param file
-	 * @return
-	 * @throws NoSuchAlgorithmException
-	 * @throws IOException
-	 */
+  public String bytesToHex(byte[] bytes) {
+    char[] hexChars = new char[bytes.length * 2];
+    for (int j = 0; j < bytes.length; j++) {
+      int v = bytes[j] & 0xFF;
+      hexChars[j * 2] = hexArray[v >>> 4];
+      hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+    }
+    return new String(hexChars);
+  }
 
-	private byte[] calcSHA1(File file) throws NoSuchAlgorithmException,
-			IOException {
-		MessageDigest digest = MessageDigest.getInstance("SHA-1");
-		InputStream fis = new FileInputStream(file);
-		int n = 0;
-		byte[] buffer = new byte[8192];
-		while (n != -1) {
-			n = fis.read(buffer);
-			if (n > 0) {
-				digest.update(buffer, 0, n);
-			}
-		}
-		return digest.digest();
-	}
+  /**
+   * Calculates the SHA1 Hash for the given File
+   * 
+   * @param file
+   * @return
+   * @throws NoSuchAlgorithmException
+   * @throws IOException
+   */
 
-	/**
-	 * Reads the given File.
-	 * 
-	 * @param file
-	 * @return
-	 * @throws NoSuchAlgorithmException
-	 * @throws IOException
-	 */
+  private byte[] calcSHA1(File file) throws NoSuchAlgorithmException,
+      IOException {
+    MessageDigest digest = MessageDigest.getInstance("SHA-1");
+    InputStream fis = new FileInputStream(file);
+    int n = 0;
+    byte[] buffer = new byte[8192];
+    while (n != -1) {
+      n = fis.read(buffer);
+      if (n > 0) {
+        digest.update(buffer, 0, n);
+      }
+    }
+    return digest.digest();
+  }
 
-	private byte[] readFile(File file) throws IOException {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		InputStream fis = new FileInputStream(file);
-		int n = 0;
-		byte[] buffer = new byte[8192];
-		int off = 0;
-		while (n != -1) {
-			n = fis.read(buffer);
-			if (n > 0) {
-				bos.write(buffer, off, n);
-				off += n;
-			}
-		}
-		return bos.toByteArray();
-	}
+  /**
+   * Reads the given File.
+   * 
+   * @param file
+   * @return
+   * @throws NoSuchAlgorithmException
+   * @throws IOException
+   */
 
-	private void writeFile(File file, String remoteDirIndex) throws IOException {
-		FileOutputStream fos = new FileOutputStream(file);
-		fos.write(remoteDirIndex.getBytes());
-		fos.flush();
-		fos.close();
-	}
+  private byte[] readFile(File file) throws IOException {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    InputStream fis = new FileInputStream(file);
+    int n = 0;
+    byte[] buffer = new byte[8192];
+    int off = 0;
+    while (n != -1) {
+      n = fis.read(buffer);
+      if (n > 0) {
+        bos.write(buffer, off, n);
+        off += n;
+      }
+    }
+    return bos.toByteArray();
+  }
 
-	/**
-	 * Queries the DNS Server for the records pointing to the terrasync servers.
-	 * Always queries 8.8.8.8 (Google). If nothing is received it uses the last
-	 * ones
-	 */
+  private void writeFile(File file, String remoteDirIndex) throws IOException {
+    FileOutputStream fos = new FileOutputStream(file);
+    fos.write(remoteDirIndex.getBytes());
+    fos.flush();
+    fos.close();
+  }
 
-	private void queryServer() {
-		if (urls.size() > 0)
-			return;
-		int index, len = 0, rcode, count = 0;
-		boolean isZone = false, isNS = false, isPlain = false;
-		String queryName = null;
-		String fileName = null;
-		InetAddress server;
-		// The default Google DNS which should work everywhere
-		String serverName = "8.8.8.8";
-		try {
-			server = InetAddress.getByName(serverName);
-		} catch (UnknownHostException e) {
-			System.err.println("Host unknown: " + serverName);
-			return;
-		}
-		DNSName qName = null;
-		try {
-			qName = new DNSName("terrasync.flightgear.org", null);
-		} catch (NumberFormatException e) {
-			e.printStackTrace();
-		}
+  /**
+   * Queries the DNS Server for the records pointing to the terrasync servers.
+   * Always queries 8.8.8.8 (Google). If nothing is received it uses the last
+   * ones
+   */
 
-		System.out.println("Connecting to " + qName.getDomain() + "...");
-		DNSConnection connection = new DNSConnection();
-		try {
-			connection.open(server);
-		} catch (IOException e) {
-			System.err.println("Could not establish connection to: "
-					+ serverName);
-		}
-		DNSMsgHeader qHeader, header = null;
-		DNSRecord[] records = null;
-		DNSRecord resRecord;
-		byte[] msgBytes;
-		DNSName[] servers = new DNSName[0];
-		rcode = DNSMsgHeader.NOERROR;
-		if (isNS || !isZone) {
-			System.out.println("Sending "
-					+ (qName.getLevel() > 0 ? qName.getRelativeAt(0) : "root")
-					+ (isNS ? " domain" : "") + " query...");
-			qHeader = DNSMsgHeader.construct(DNSMsgHeader.QUERY, true, 1, 0, 0,
-					0, false);
-			records = new DNSRecord[1];
-			records[0] = new DNSRecord(qName, isNS ? DNSRecord.NS
-					: DNSRecord.ANY, DNSRecord.IN);
-			msgBytes = DNSConnection.encode(qHeader, records);
-			try {
-				connection.send(msgBytes);
-			} catch (IOException e) {
-				System.err.println("Data transmission error!");
-				e.printStackTrace();
-				return;
-			}
-			System.out.println("Receiving answer...");
-			try {
-				msgBytes = connection.receive(true);
-			} catch (IOException e) {
-				connection.close();
-				System.err.println("Data transmission error!");
-				e.printStackTrace();
-				return;
-			}
-			if ((records = DNSConnection.decode(msgBytes)) == null) {
-				connection.close();
-				System.err.println("Invalid protocol message received!");
-				return;
-			}
-			header = new DNSMsgHeader(msgBytes);
-			if (!header.isResponse() || header.getId() != qHeader.getId()) {
-				connection.close();
-				System.err.println("Bad protocol message header: "
-						+ header.toString());
-				return;
-			}
-			System.out.println("Authoritative answer: "
-					+ (header.isAuthoritativeAnswer() ? "Yes" : "No"));
-			if (header.isAuthenticData())
-				System.out.println("Authentic data received");
-			if (header.isTruncated())
-				System.out.println("Response message truncated!");
-			if ((rcode = header.getRCode()) != DNSMsgHeader.NOERROR)
-				System.out
-						.println(rcode == DNSMsgHeader.NXDOMAIN ? (isNS ? "Domain does not exist!"
-								: "Requested name does not exist!")
-								: "Server returned error: "
-										+ UnsignedInt.toAbbreviation(rcode,
-												DNSMsgHeader.RCODE_ABBREVS));
-			len = records.length;
-			if ((index = header.getQdCount()) < len) {
-				count = header.getAnCount();
-				if (!isNS) {
-					int section = 1;
-					System.out.println("Answer:");
-					urls.clear();
-					do {
+  private void queryServer() {
+    if (urls.size() > 0)
+      return;
+    int index, len = 0, rcode, count = 0;
+    boolean isZone = false, isNS = false, isPlain = false;
+    String queryName = null;
+    String fileName = null;
+    InetAddress server;
+    // The default Google DNS which should work everywhere
+    String serverName = "8.8.8.8";
+    try {
+      server = InetAddress.getByName(serverName);
+    } catch (UnknownHostException e) {
+      System.err.println("Host unknown: " + serverName);
+      return;
+    }
+    DNSName qName = null;
+    try {
+      qName = new DNSName("terrasync.flightgear.org", null);
+    } catch (NumberFormatException e) {
+      e.printStackTrace();
+    }
 
-						while (count <= 0) {
-							count = len;
-							String str = "";
-							if (++section == 2) {
-								count = header.getNsCount();
-								str = "Name servers:";
-							} else if (section == 3) {
-								count = header.getArCount();
-								str = "Additional:";
-							}
-							System.out.println(str);
-						}
-						System.out.print(" ");
-						String regex = (String) (records[index].getRData())[4];
-						String[] tokens = regex.split("!");
-						Pattern p = Pattern.compile(tokens[1]);
-						Matcher m = p.matcher(qName.getAbsolute());
-						if (m.find())
-							try {
-								urls.add(new URL(m.replaceAll(tokens[2] + "/")));
-							} catch (MalformedURLException e) {
-								e.printStackTrace();
-							}
-						System.out.println(records[index].toString(null, null,
-								false));
-						index++;
-						count--;
-					} while (index < len);
-				} else if (rcode == DNSMsgHeader.NOERROR) {
-					boolean found = false;
-					System.out.print("Found authoritative name servers:");
-					servers = new DNSName[count];
-					for (int index2 = 0; index2 < count && index < len; index2++)
-						if ((resRecord = records[index++]).getRType() == DNSRecord.NS
-								&& qName.equals(resRecord.getRName())) {
-							if (!found) {
-								found = true;
-								System.out.println("");
-							}
-							System.out.print(" ");
-							System.out
-									.println((servers[index2] = (DNSName) resRecord
-											.getRData()[0]).getAbsolute());
-						}
-					if (!found) {
-						System.out.println(" none");
-						System.out.println("Domain does not exist!");
-						rcode = DNSMsgHeader.NXDOMAIN;
-					}
-				}
-			}
-			if (rcode != DNSMsgHeader.NOERROR) {
-				connection.close();
-				// return rcode == DNSMsgHeader.NXDOMAIN ? 5 : 6;
-				return;
-			}
-		}
-		if (isZone) {
-			index = servers.length;
-			DNSName rName;
-			if (index != 0) {
-				try {
-					rName = new DNSName(serverName, null);
-					while (!rName.equals(servers[index - 1]) && --index > 0)
-						;
-				} catch (NumberFormatException e) {
-				}
-				if (index > 0) {
-					servers[index - 1] = null;
-					index = 0;
-				} else {
-					connection.close();
-					serverName = null;
-				}
-			}
-			int size = -1, receivedBytesCount = 0, time;
-			String errStr = null;
-			Object[] soaRData = null;
-			do {
-				if (serverName == null) {
-					do {
-						if (index >= servers.length)
-							return;
-					} while (servers[index++] == null);
-					serverName = servers[index - 1].getRelativeAt(0);
-					System.out.println("Connecting to " + serverName + "...");
-					try {
-						server = InetAddress.getByName(serverName);
-					} catch (UnknownHostException e) {
-						System.err.println("Host unknown!");
-						serverName = null;
-						rcode = 9;
-						continue;
-					} catch (SecurityException e) {
-						serverName = null;
-						rcode = 9;
-						continue;
-					}
-					try {
-						connection.open(server);
-					} catch (IOException e) {
-						System.err
-								.println("Could not establish connection to: "
-										+ serverName);
-						serverName = null;
-						rcode = 8;
-						continue;
-					}
-				}
-				System.out.println("Sending zone query for: "
-						+ qName.getRelativeAt(0));
-				qHeader = DNSMsgHeader.construct(DNSMsgHeader.QUERY, false, 1,
-						0, 0, 0, false);
-				records = new DNSRecord[1];
-				records[0] = new DNSRecord(qName, DNSRecord.AXFR, DNSRecord.IN);
-				msgBytes = DNSConnection.encode(qHeader, records);
-				try {
-					connection.send(msgBytes);
-				} catch (IOException e) {
-					connection.close();
-					System.err.println("Data transmission error!");
-					serverName = null;
-					rcode = 7;
-					continue;
-				}
-				System.out.println("Waiting for response...");
-				receivedBytesCount = 0;
-				errStr = null;
-				time = (int) System.currentTimeMillis();
-				try {
-					if ((records = DNSConnection.decode(msgBytes = connection
-							.receive(true))) == null) {
-						connection.close();
-						System.err
-								.println("Invalid protocol message received!");
-						serverName = null;
-						rcode = 7;
-						continue;
-					}
-					header = new DNSMsgHeader(msgBytes);
-					if (!header.isResponse()
-							|| header.getId() != qHeader.getId()
-							&& header.getId() != 0) {
-						connection.close();
-						System.err.println("Bad protocol message header: "
-								+ header.toString());
-						serverName = null;
-						rcode = 7;
-						continue;
-					}
-					if ((rcode = header.getRCode()) != DNSMsgHeader.NOERROR) {
-						connection.close();
-						System.err
-								.println(rcode == DNSMsgHeader.REFUSED ? "Zone access denied by this server!"
-										: "Server returned error: "
-												+ UnsignedInt
-														.toAbbreviation(
-																rcode,
-																DNSMsgHeader.RCODE_ABBREVS));
-						rcode = rcode == DNSMsgHeader.REFUSED ? 4 : 6;
-						serverName = null;
-						continue;
-					}
-					if ((rcode = header.getAnCount()) <= 0
-							|| (count = header.getQdCount()) > records.length
-									- rcode) {
-						connection.close();
-						System.err.println("None answer records received!");
-						serverName = null;
-						rcode = 6;
-						continue;
-					}
-					if ((resRecord = records[count]).getRType() != DNSRecord.SOA
-							|| resRecord.getRClass() != DNSRecord.IN
-							|| !(rName = resRecord.getRName()).equals(qName)) {
-						connection.close();
-						System.err
-								.println("Non-authoritative record received: "
-										+ resRecord.toString(null, null, false));
-						serverName = null;
-						rcode = 6;
-						continue;
-					}
-					qName = rName;
-					soaRData = resRecord.getRData();
-					if (soaRData.length <= DNSRecord.SOA_MINTTL_INDEX) {
-						connection.close();
-						System.err.println("Invalid authority data received!");
-						serverName = null;
-						rcode = 6;
-						continue;
-					}
-					size = 0;
-					if (fileName != null) {
-						DNSRecord[] curRecords = records;
-						receivedBytesCount = msgBytes.length;
-						System.out.print("Getting zone records ");
-						records[0] = resRecord;
-						rcode--;
-						count++;
-						size = 1;
-						do {
-							while (rcode-- > 0
-									&& (resRecord = curRecords[count++])
-											.getRType() != DNSRecord.SOA)
-								if (resRecord.getRClass() == DNSRecord.IN
-										|| resRecord.getRName().isInDomain(
-												qName, false)) {
-									if (size % 100 == 1) {
-										System.out.print(".");
-										System.out.flush();
-									}
-									records[size++] = resRecord;
-								}
-							if (rcode >= 0)
-								break;
-							receivedBytesCount += (msgBytes = connection
-									.receive(true)).length;
-							if ((curRecords = DNSConnection.decode(msgBytes)) == null
-									|| !(header = new DNSMsgHeader(msgBytes))
-											.isResponse()
-									|| (count = header.getQdCount()) > curRecords.length
-											- header.getAnCount()) {
-								errStr = "Invalid protocol message received!";
-								break;
-							}
-							if ((rcode = header.getRCode()) != DNSMsgHeader.NOERROR) {
-								errStr = "Server returned error: "
-										+ UnsignedInt.toAbbreviation(rcode,
-												DNSMsgHeader.RCODE_ABBREVS);
-								break;
-							}
-							if (records.length - (rcode = header.getAnCount()) < size) {
-								int newSize;
-								DNSRecord[] newRecords;
-								if ((newSize = (size >> 1) + rcode + size + 1) <= size)
-									newSize = -1 >>> 1;
-								System.arraycopy(records, 0,
-										newRecords = new DNSRecord[newSize], 0,
-										size);
-								records = newRecords;
-							}
-						} while (true);
-					}
-				} catch (EOFException e) {
-					errStr = "Connection terminated by server!";
-				} catch (InterruptedIOException e) {
-					errStr = "Connection time-out!";
-				} catch (IOException e) {
-					errStr = "Data transmission error!";
-				}
-				time = (int) System.currentTimeMillis() - time;
-				connection.close();
-				if (size > 0)
-					System.out.println("");
-				if (errStr != null)
-					System.err.println(errStr);
-				if (size < 0)
-					serverName = null;
-				else
-					break;
-			} while (true);
-		}
-		if (!urls.isEmpty()) {
-			try {
-				ObjectOutputStream ois = new ObjectOutputStream(
-						new FileOutputStream(TERRASYNC_SERVERS));
-				ois.writeObject(urls);
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-		} else {
-			try {
-				ObjectInputStream ois = new ObjectInputStream(
-						new FileInputStream(TERRASYNC_SERVERS));
-				urls = (ArrayList<URL>) ois.readObject();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-	}
+    LOG.info("Connecting to " + qName.getDomain() + "...");
+    DNSConnection connection = new DNSConnection();
+    try {
+      connection.open(server);
+    } catch (IOException e) {
+      System.err.println("Could not establish connection to: " + serverName);
+    }
+    DNSMsgHeader qHeader, header = null;
+    DNSRecord[] records = null;
+    DNSRecord resRecord;
+    byte[] msgBytes;
+    DNSName[] servers = new DNSName[0];
+    rcode = DNSMsgHeader.NOERROR;
+    if (isNS || !isZone) {
+      LOG.info("Sending "
+          + (qName.getLevel() > 0 ? qName.getRelativeAt(0) : "root")
+          + (isNS ? " domain" : "") + " query...");
+      qHeader = DNSMsgHeader.construct(DNSMsgHeader.QUERY, true, 1, 0, 0, 0,
+          false);
+      records = new DNSRecord[1];
+      records[0] = new DNSRecord(qName, isNS ? DNSRecord.NS : DNSRecord.ANY,
+          DNSRecord.IN);
+      msgBytes = DNSConnection.encode(qHeader, records);
+      try {
+        connection.send(msgBytes);
+      } catch (IOException e) {
+        System.err.println("Data transmission error!");
+        e.printStackTrace();
+        return;
+      }
+      LOG.info("Receiving answer...");
+      try {
+        msgBytes = connection.receive(true);
+      } catch (IOException e) {
+        connection.close();
+        System.err.println("Data transmission error!");
+        e.printStackTrace();
+        return;
+      }
+      if ((records = DNSConnection.decode(msgBytes)) == null) {
+        connection.close();
+        System.err.println("Invalid protocol message received!");
+        return;
+      }
+      header = new DNSMsgHeader(msgBytes);
+      if (!header.isResponse() || header.getId() != qHeader.getId()) {
+        connection.close();
+        LOG.warning("Bad protocol message header: " + header.toString());
+        return;
+      }
+      LOG.info("Authoritative answer: "
+          + (header.isAuthoritativeAnswer() ? "Yes" : "No"));
+      if ((rcode = header.getRCode()) != DNSMsgHeader.NOERROR)
+        LOG.info(rcode == DNSMsgHeader.NXDOMAIN ? (isNS ? "Domain does not exist!"
+            : "Requested name does not exist!")
+            : "Server returned error: "
+                + UnsignedInt.toAbbreviation(rcode, DNSMsgHeader.RCODE_ABBREVS));
+      len = records.length;
+      if ((index = header.getQdCount()) < len) {
+        count = header.getAnCount();
+        if (!isNS) {
+          int section = 1;
+          LOG.info("Answer:");
+          urls.clear();
+          do {
 
-	/**
-	 * Does the Async notification of the GUI
-	 * 
-	 * @param n
-	 */
+            while (count <= 0) {
+              count = len;
+              String str = "";
+              if (++section == 2) {
+                count = header.getNsCount();
+                str = "Name servers:";
+              } else if (section == 3) {
+                count = header.getArCount();
+                str = "Additional:";
+              }
+              LOG.info(str);
+            }
+            LOG.info(" ");
+            String regex = (String) (records[index].getRData())[4];
+            String[] tokens = regex.split("!");
+            Pattern p = Pattern.compile(tokens[1]);
+            Matcher m = p.matcher(qName.getAbsolute());
+            if (m.find())
+              try {
+                urls.add(new URL(m.replaceAll(tokens[2] + "/")));
+              } catch (MalformedURLException e) {
+                e.printStackTrace();
+              }
+            LOG.info(records[index].toString(null, null, false));
+            index++;
+            count--;
+          } while (index < len);
+        } else if (rcode == DNSMsgHeader.NOERROR) {
+          boolean found = false;
+          LOG.info("Found authoritative name servers:");
+          servers = new DNSName[count];
+          for (int index2 = 0; index2 < count && index < len; index2++)
+            if ((resRecord = records[index++]).getRType() == DNSRecord.NS
+                && qName.equals(resRecord.getRName())) {
+              if (!found) {
+                found = true;
+                LOG.info("");
+              }
+              LOG.info(" ");
+              LOG.infoln((servers[index2] = (DNSName) resRecord
+                  .getRData()[0]).getAbsolute());
+            }
+          if (!found) {
+            LOG.info(" none");
+            LOG.info("Domain does not exist!");
+            rcode = DNSMsgHeader.NXDOMAIN;
+          }
+        }
+      }
+      if (rcode != DNSMsgHeader.NOERROR) {
+        connection.close();
+        // return rcode == DNSMsgHeader.NXDOMAIN ? 5 : 6;
+        return;
+      }
+    }
+    if (isZone) {
+      index = servers.length;
+      DNSName rName;
+      if (index != 0) {
+        try {
+          rName = new DNSName(serverName, null);
+          while (!rName.equals(servers[index - 1]) && --index > 0)
+            ;
+        } catch (NumberFormatException e) {
+        }
+        if (index > 0) {
+          servers[index - 1] = null;
+          index = 0;
+        } else {
+          connection.close();
+          serverName = null;
+        }
+      }
+      int size = -1, receivedBytesCount = 0, time;
+      String errStr = null;
+      Object[] soaRData = null;
+      do {
+        if (serverName == null) {
+          do {
+            if (index >= servers.length)
+              return;
+          } while (servers[index++] == null);
+          serverName = servers[index - 1].getRelativeAt(0);
+          LOG.info("Connecting to " + serverName + "...");
+          try {
+            server = InetAddress.getByName(serverName);
+          } catch (UnknownHostException e) {
+            System.err.println("Host unknown!");
+            serverName = null;
+            rcode = 9;
+            continue;
+          } catch (SecurityException e) {
+            serverName = null;
+            rcode = 9;
+            continue;
+          }
+          try {
+            connection.open(server);
+          } catch (IOException e) {
+            System.err.println("Could not establish connection to: "
+                + serverName);
+            serverName = null;
+            rcode = 8;
+            continue;
+          }
+        }
+        LOG.info("Sending zone query for: " + qName.getRelativeAt(0));
+        qHeader = DNSMsgHeader.construct(DNSMsgHeader.QUERY, false, 1, 0, 0, 0,
+            false);
+        records = new DNSRecord[1];
+        records[0] = new DNSRecord(qName, DNSRecord.AXFR, DNSRecord.IN);
+        msgBytes = DNSConnection.encode(qHeader, records);
+        try {
+          connection.send(msgBytes);
+        } catch (IOException e) {
+          connection.close();
+          System.err.println("Data transmission error!");
+          serverName = null;
+          rcode = 7;
+          continue;
+        }
+        LOG.info("Waiting for response...");
+        receivedBytesCount = 0;
+        errStr = null;
+        time = (int) System.currentTimeMillis();
+        try {
+          if ((records = DNSConnection.decode(msgBytes = connection
+              .receive(true))) == null) {
+            connection.close();
+            System.err.println("Invalid protocol message received!");
+            serverName = null;
+            rcode = 7;
+            continue;
+          }
+          header = new DNSMsgHeader(msgBytes);
+          if (!header.isResponse() || header.getId() != qHeader.getId()
+              && header.getId() != 0) {
+            connection.close();
+            System.err.println("Bad protocol message header: "
+                + header.toString());
+            serverName = null;
+            rcode = 7;
+            continue;
+          }
+          if ((rcode = header.getRCode()) != DNSMsgHeader.NOERROR) {
+            connection.close();
+            System.err
+                .println(rcode == DNSMsgHeader.REFUSED ? "Zone access denied by this server!"
+                    : "Server returned error: "
+                        + UnsignedInt.toAbbreviation(rcode,
+                            DNSMsgHeader.RCODE_ABBREVS));
+            rcode = rcode == DNSMsgHeader.REFUSED ? 4 : 6;
+            serverName = null;
+            continue;
+          }
+          if ((rcode = header.getAnCount()) <= 0
+              || (count = header.getQdCount()) > records.length - rcode) {
+            connection.close();
+            System.err.println("None answer records received!");
+            serverName = null;
+            rcode = 6;
+            continue;
+          }
+          if ((resRecord = records[count]).getRType() != DNSRecord.SOA
+              || resRecord.getRClass() != DNSRecord.IN
+              || !(rName = resRecord.getRName()).equals(qName)) {
+            connection.close();
+            System.err.println("Non-authoritative record received: "
+                + resRecord.toString(null, null, false));
+            serverName = null;
+            rcode = 6;
+            continue;
+          }
+          qName = rName;
+          soaRData = resRecord.getRData();
+          if (soaRData.length <= DNSRecord.SOA_MINTTL_INDEX) {
+            connection.close();
+            System.err.println("Invalid authority data received!");
+            serverName = null;
+            rcode = 6;
+            continue;
+          }
+          size = 0;
+          if (fileName != null) {
+            DNSRecord[] curRecords = records;
+            receivedBytesCount = msgBytes.length;
+            LOG.info("Getting zone records ");
+            records[0] = resRecord;
+            rcode--;
+            count++;
+            size = 1;
+            do {
+              while (rcode-- > 0
+                  && (resRecord = curRecords[count++]).getRType() != DNSRecord.SOA)
+                if (resRecord.getRClass() == DNSRecord.IN
+                    || resRecord.getRName().isInDomain(qName, false)) {
+                  if (size % 100 == 1) {
+                    LOG.info(".");
+                  }
+                  records[size++] = resRecord;
+                }
+              if (rcode >= 0)
+                break;
+              receivedBytesCount += (msgBytes = connection.receive(true)).length;
+              if ((curRecords = DNSConnection.decode(msgBytes)) == null
+                  || !(header = new DNSMsgHeader(msgBytes)).isResponse()
+                  || (count = header.getQdCount()) > curRecords.length
+                      - header.getAnCount()) {
+                errStr = "Invalid protocol message received!";
+                break;
+              }
+              if ((rcode = header.getRCode()) != DNSMsgHeader.NOERROR) {
+                errStr = "Server returned error: "
+                    + UnsignedInt.toAbbreviation(rcode,
+                        DNSMsgHeader.RCODE_ABBREVS);
+                break;
+              }
+              if (records.length - (rcode = header.getAnCount()) < size) {
+                int newSize;
+                DNSRecord[] newRecords;
+                if ((newSize = (size >> 1) + rcode + size + 1) <= size)
+                  newSize = -1 >>> 1;
+                System.arraycopy(records, 0,
+                    newRecords = new DNSRecord[newSize], 0, size);
+                records = newRecords;
+              }
+            } while (true);
+          }
+        } catch (EOFException e) {
+          errStr = "Connection terminated by server!";
+        } catch (InterruptedIOException e) {
+          errStr = "Connection time-out!";
+        } catch (IOException e) {
+          errStr = "Data transmission error!";
+        }
+        time = (int) System.currentTimeMillis() - time;
+        connection.close();
+        if (size > 0)
+          LOG.info("");
+        if (errStr != null)
+          System.err.println(errStr);
+        if (size < 0)
+          serverName = null;
+        else
+          break;
+      } while (true);
+    }
+    if (!urls.isEmpty()) {
+      try {
+        ObjectOutputStream ois = new ObjectOutputStream(new FileOutputStream(
+            TERRASYNC_SERVERS));
+        ois.writeObject(urls);
+      } catch (IOException e1) {
+        // TODO Auto-generated catch block
+        e1.printStackTrace();
+      }
+    } else {
+      try {
+        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(
+            TERRASYNC_SERVERS));
+        urls = (ArrayList<URL>) ois.readObject();
+      } catch (IOException e1) {
+        // TODO Auto-generated catch block
+        e1.printStackTrace();
+      } catch (ClassNotFoundException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+  }
 
-	private void invokeLater(final int n, final int num) {
-		if( num < 0 )
-			System.out.println("Update < 0");
-		// invoke this on the Event Disp Thread
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				switch (n) {
-				case RESET: // reset progressBar
-					TerraMaster.frame.butStop.setEnabled(false);
-					try {
-						Thread.sleep(1200);
-					} catch (InterruptedException e) {
-					}
-					TerraMaster.frame.progressBar.setMaximum(0);
-					TerraMaster.frame.progressBar.setVisible(false);
-					break;
-				case UPDATE: // update progressBar
-					TerraMaster.frame.progressUpdate(num);
-					break;
-				case EXTEND: // progressBar maximum++
-					TerraMaster.frame.progressBar
-							.setMaximum(TerraMaster.frame.progressBar
-									.getMaximum() + num);
-					break;
-				}
-			}
-		});
-	}
+  /**
+   * Does the Async notification of the GUI
+   * 
+   * @param n
+   */
+
+  private void invokeLater(final int n, final int num) {
+    if (num < 0)
+      LOG.info("Update < 0");
+    // invoke this on the Event Disp Thread
+    SwingUtilities.invokeLater(new Runnable() {
+      public void run() {
+        switch (n) {
+        case RESET: // reset progressBar
+          TerraMaster.frame.butStop.setEnabled(false);
+          try {
+            Thread.sleep(1200);
+          } catch (InterruptedException e) {
+          }
+          TerraMaster.frame.progressBar.setMaximum(0);
+          TerraMaster.frame.progressBar.setVisible(false);
+          break;
+        case UPDATE: // update progressBar
+          TerraMaster.frame.progressUpdate(num);
+          break;
+        case EXTEND: // progressBar maximum++
+          TerraMaster.frame.progressBar
+              .setMaximum(TerraMaster.frame.progressBar.getMaximum() + num);
+          break;
+        }
+      }
+    });
+  }
 
 }

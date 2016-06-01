@@ -18,6 +18,8 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
+import java.awt.BorderLayout;
+import javax.swing.JPanel;
 
 public class MapFrame extends JFrame {
 
@@ -30,19 +32,19 @@ public class MapFrame extends JFrame {
 	  }
 
 	  public void componentResized(ComponentEvent e) {
-	    tileName.setLocation( 20, 10);
-	    butSync.setLocation(  90-1, 7);
-	    butDelete.setLocation(115-1, 7);
-	    butSearch.setLocation(140-1, 7);
-	    butStop.setLocation(165-1, 7);
-            butModels.setLocation(190-1, 7);
-	    butClear.setLocation(220-1, 7);
-	    butReset.setLocation(245-1, 7);
-	    butPrefs.setLocation(270-1, 7);
-	    search.setLocation(300, 10);
-	    searchBar.setLocation(345, 10);
-	    progressBar.setLocation(470, 9);
-	    map.setLocation(0, 40);
+//	    tileName.setLocation( 20, 10);
+//	    butSync.setLocation(  90-1, 7);
+//	    butDelete.setLocation(115-1, 7);
+//	    butSearch.setLocation(140-1, 7);
+//	    butStop.setLocation(165-1, 7);
+//            butModels.setLocation(190-1, 7);
+//	    butClear.setLocation(220-1, 7);
+//	    butReset.setLocation(245-1, 7);
+//	    butPrefs.setLocation(270-1, 7);
+//	    search.setLocation(300, 10);
+//	    searchBar.setLocation(345, 10);
+//	    progressBar.setLocation(470, 9);
+//	    map.setLocation(0, 40);
 	    map.setSize(getWidth(), getHeight()-40);
 	    updateGeom();
 	  }
@@ -121,13 +123,13 @@ public class MapFrame extends JFrame {
   JButton	butSync, butDelete, butStop, butModels, butReset, butClear, butPrefs, butSearch;
   JFileChooser	fc = new JFileChooser();
   JProgressBar	progressBar;
+  private JPanel panel;
 
   public MapFrame(String title) {
     MFAdapter ad = new MFAdapter();
 
     this.title = title;
     setTitle(title);
-    setLayout(null);
     getContentPane().addComponentListener(ad);
 
     addWindowListener(new WindowAdapter() {
@@ -140,94 +142,88 @@ public class MapFrame extends JFrame {
 	  } catch (Exception x) { }
 	}
       });
-
-    tileName = new JLabel();
-    tileName.setBounds(0, 0, 60, 20);
-    tileName.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
-    add(tileName);
-
-    butSync = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Sync.png")));
-    butSync.setBounds(0, 0, 26, 26);
-    butSync.setEnabled(false);
-    butSync.addActionListener(ad);
-    butSync.setActionCommand("SYNC");
-    butSync.setToolTipText("Synchronise selected tiles");
-    add(butSync);
-
-    butDelete = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Trash.png")));
-    butDelete.setBounds(0, 0, 26, 26);
-    butDelete.setEnabled(false);
-    butDelete.addActionListener(ad);
-    butDelete.setActionCommand("DELETE");
-    butDelete.setToolTipText("Delete selected tiles from disk");
-    add(butDelete);
-
-    butSearch = new JButton(new ImageIcon("Eye.png"));
-    butSearch.setBounds(0, 0,  26, 26);
-    butSearch.setEnabled(false);
-    butSearch.addActionListener(ad);
-    butSearch.setActionCommand("BROWSE");
-    butSearch.setToolTipText("Show airports within selected tiles");
-    add(butSearch);
-
-    butStop = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Stop sign.png")));
-    butStop.setBounds(0, 0, 26, 26);
-    butStop.setEnabled(false);
-    butStop.addActionListener(ad);
-    butStop.setActionCommand("STOP");
-    butStop.setToolTipText("Stop all queued syncs");
-    add(butStop);
-
-    butModels = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Company.png")));
-    butModels.setBounds(0, 0, 26, 26);
-    butModels.setEnabled(true);
-    butModels.addActionListener(ad);
-    butModels.setActionCommand("MODELS");
-    butModels.setToolTipText("Synchronise shared models");
-    add(butModels);
-
-    butClear = new JButton(new ImageIcon(getClass().getClassLoader().getResource("New document.png")));
-    butClear.setBounds(0, 0,  26, 26);
-    butClear.addActionListener(ad);
-    butClear.setActionCommand("CLEAR");
-    butClear.setToolTipText("Clear all airports from map");
-    add(butClear);
-
-    butReset = new JButton(new ImageIcon(getClass().getClassLoader().getResource("globe.png")));
-    butReset.setBounds(0, 0,  26, 26);
-    butReset.addActionListener(ad);
-    butReset.setActionCommand("RESET");
-    butReset.setToolTipText("Toggle between projections");
-    add(butReset);
-
-    butPrefs = new JButton(new ImageIcon(getClass().getClassLoader().getResource("application.png")));
-    butPrefs.setBounds(0, 0,  26, 26);
-    butPrefs.addActionListener(ad);
-    butPrefs.setActionCommand("PREFS");
-    butPrefs.setToolTipText("Select scenery folder");
-    add(butPrefs);
-
-    search = new JLabel("Search:");
-    search.setBounds(0, 0, 60, 20);
-    search.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
-    add(search);
-
-    searchBar = new JTextField();
-    searchBar.setBounds(0, 0, 80, 20);
-    searchBar.addActionListener(ad);
-    searchBar.setActionCommand("SEARCH");
-    searchBar.setToolTipText("Search for airport by name or code");
-    add(searchBar);
-
-    progressBar = new JProgressBar();
-    progressBar.setBounds(0, 0, 120, 20);
-    progressBar.setVisible(false);
-    progressBar.setStringPainted(true);
-    progressBar.setMaximum(0);
-    add(progressBar);
+    getContentPane().setLayout(new BorderLayout(0, 0));
 
     map = new MapPanel();
-    add(map);
+    getContentPane().add(map);
+    
+    panel = new JPanel();
+    getContentPane().add(panel, BorderLayout.NORTH);
+    
+        tileName = new JLabel();
+        tileName.setText("         ");
+        panel.add(tileName);
+        tileName.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+        
+            butSync = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Sync.png")));
+            panel.add(butSync);
+            butSync.setEnabled(false);
+            butSync.addActionListener(ad);
+            butSync.setActionCommand("SYNC");
+            butSync.setToolTipText("Synchronise selected tiles");
+            
+                butDelete = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Trash.png")));
+                panel.add(butDelete);
+                butDelete.setEnabled(false);
+                butDelete.addActionListener(ad);
+                butDelete.setActionCommand("DELETE");
+                butDelete.setToolTipText("Delete selected tiles from disk");
+                
+                    butSearch = new JButton(new ImageIcon(MapFrame.class.getResource("Eye.png")));
+                    panel.add(butSearch);
+                    butSearch.setEnabled(false);
+                    butSearch.addActionListener(ad);
+                    butSearch.setActionCommand("BROWSE");
+                    butSearch.setToolTipText("Show airports within selected tiles");
+                    
+                        butStop = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Stop sign.png")));
+                        panel.add(butStop);
+                        butStop.setEnabled(false);
+                        butStop.addActionListener(ad);
+                        butStop.setActionCommand("STOP");
+                        butStop.setToolTipText("Stop all queued syncs");
+                        
+                            butModels = new JButton(new ImageIcon(getClass().getClassLoader().getResource("Company.png")));
+                            panel.add(butModels);
+                            butModels.setEnabled(true);
+                            butModels.addActionListener(ad);
+                            butModels.setActionCommand("MODELS");
+                            butModels.setToolTipText("Synchronise shared models");
+                            
+                                butClear = new JButton(new ImageIcon(getClass().getClassLoader().getResource("New document.png")));
+                                panel.add(butClear);
+                                butClear.addActionListener(ad);
+                                butClear.setActionCommand("CLEAR");
+                                butClear.setToolTipText("Clear all airports from map");
+                                
+                                    butReset = new JButton(new ImageIcon(getClass().getClassLoader().getResource("globe.png")));
+                                    panel.add(butReset);
+                                    butReset.addActionListener(ad);
+                                    butReset.setActionCommand("RESET");
+                                    butReset.setToolTipText("Toggle between projections");
+                                    
+                                        butPrefs = new JButton(new ImageIcon(getClass().getClassLoader().getResource("application.png")));
+                                        panel.add(butPrefs);
+                                        butPrefs.addActionListener(ad);
+                                        butPrefs.setActionCommand("PREFS");
+                                        butPrefs.setToolTipText("Select scenery folder");
+                                        
+                                            search = new JLabel("Search:");
+                                            panel.add(search);
+                                            search.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+                                            
+                                                searchBar = new JTextField();
+                                                searchBar.setText("           ");
+                                                panel.add(searchBar);
+                                                searchBar.addActionListener(ad);
+                                                searchBar.setActionCommand("SEARCH");
+                                                searchBar.setToolTipText("Search for airport by name or code");
+                                                
+                                                    progressBar = new JProgressBar();
+                                                    panel.add(progressBar);
+                                                    progressBar.setVisible(false);
+                                                    progressBar.setStringPainted(true);
+                                                    progressBar.setMaximum(0);
 
     map.passFrame(this);
 
