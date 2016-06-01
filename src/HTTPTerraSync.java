@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -320,7 +321,7 @@ public class HTTPTerraSync extends Thread implements TileService {
       LOG.info("File downloaded");
       return outputStream.toByteArray();
     } else {
-      LOG.infoln("No file to download. Server replied HTTP code: "
+      LOG.warning("No file to download. Server replied HTTP code: "
           + responseCode);
     }
     httpConn.disconnect();
@@ -331,8 +332,7 @@ public class HTTPTerraSync extends Thread implements TileService {
     try {
       syncDirectory("Models", false, TerraMaster.MODELS);
     } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.log(Level.SEVERE, e.toString(), e);
     }
   }
 
@@ -630,7 +630,7 @@ public class HTTPTerraSync extends Thread implements TileService {
                 LOG.info("");
               }
               LOG.info(" ");
-              LOG.infoln((servers[index2] = (DNSName) resRecord
+              LOG.info((servers[index2] = (DNSName) resRecord
                   .getRData()[0]).getAbsolute());
             }
           if (!found) {
