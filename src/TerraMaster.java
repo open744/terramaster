@@ -217,6 +217,7 @@ public class TerraMaster {
     } catch (IOException e) {
       LOG.log(Level.WARNING, "Couldn't load properties : " + e.toString(), e);
     }
+    LOG.info("Starting TerraMaster");
 
     setTileService();
 
