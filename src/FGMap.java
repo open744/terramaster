@@ -1,18 +1,26 @@
-import javax.xml.stream.*;
-
-import java.net.*;
-import java.io.*;
-import java.util.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import javax.xml.stream.FactoryConfigurationError;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
-// this class handles webqueries and returns results
-
-// it keeps a per-session HashMap of known airports
-
-// http://mpmap02.flightgear.org/fg_nav_xml_proxy.cgi?sstr=wbks&apt_code
+/**
+ *  this class handles webqueries and returns results
+ *  it keeps a per-session HashMap of known airports
+ *  It queries the multiplayer map. 
+ *  {@link http://mpmap02.flightgear.org/fg_nav_xml_proxy.cgi?sstr=wbks&apt_code} 
+ */
 
 public class FGMap {
   Logger LOG = Logger.getLogger(this.getClass().getName());
@@ -72,8 +80,8 @@ public class FGMap {
     } catch (XMLStreamException e) {
       LOG.log(Level.WARNING, e.toString(), e);
     } catch (Exception e) {
-      LOG.log(Level.WARNING, e.toString(), e);      
-    }
+      LOG.log(Level.WARNING, e.toString(), e);
+      JOptionPane.showMessageDialog(TerraMaster.frame, "Can't query Airports " + e.toString(), "Error", JOptionPane.ERROR_MESSAGE);    }
 
     return result;
   }
