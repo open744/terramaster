@@ -225,7 +225,7 @@ public class HTTPTerraSync extends Thread implements TileService {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    return null;
+    return new HashSet<String>();
   }
 
   /**
@@ -326,7 +326,7 @@ public class HTTPTerraSync extends Thread implements TileService {
           + responseCode);
     }
     httpConn.disconnect();
-    return null;
+    return "".getBytes();
   }
 
   private void syncModels() {
