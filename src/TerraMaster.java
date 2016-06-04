@@ -19,34 +19,32 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
-public class TerraMaster
-{
-  public static ArrayList<MapPoly>	polys, borders;
+public class TerraMaster {
+  Logger LOG = Logger.getLogger(this.getClass().getName());
+  public static ArrayList<MapPoly> polys, borders;
 
-  static MapFrame	frame;
-  public GshhsHeader	gshhsHeader;
+  static MapFrame frame;
+  public GshhsHeader gshhsHeader;
 
-  public static Map<TileName, TileData>	mapScenery;
-  static final int	TERRAIN = 0,
-			OBJECTS = 1,
-			MODELS  = 2,
-			AIRPORTS = 3;
+  public static Map<TileName, TileData> mapScenery;
+  static final int TERRAIN = 0, OBJECTS = 1, MODELS = 2, AIRPORTS = 3;
 
   public static TileName tilenameManager;
-  /**The service getting the tiles*/
+  /** The service getting the tiles */
   public static TileService svn;
   public static FGMap fgmap;
   public static Properties props;
 
-  public static void addScnMapTile(Map<TileName, TileData> map,
-				   File i, int type)
-  {
+  public static void addScnMapTile(Map<TileName, TileData> map, File i, int type) {
     TileName n = tilenameManager.getTile(i.getName());
     TileData t = map.get(n);
     if (t == null) {
@@ -67,61 +65,57 @@ public class TerraMaster
   }
 
   // given a 10x10 dir, add the 1x1 tiles within to the HashMap
-  static void buildScnMap(File dir, Map<TileName, TileData> map, int type)
-  {
+  static void buildScnMap(File dir, Map<TileName, TileData> map, int type) {
     File tiles[] = dir.listFiles();
     Pattern p = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
 
-    for (File f: tiles) {
-      Matcher	m = p.matcher(f.getName());
+    for (File f : tiles) {
+      Matcher m = p.matcher(f.getName());
       if (m.matches())
-	addScnMapTile(map, f, type);
+        addScnMapTile(map, f, type);
     }
   }
 
   // builds a HashMap of /Terrain and /Objects
-	static Map<TileName, TileData> newScnMap(String path) {
-		String[] types = { "/Terrain", "/Objects" };
-		Pattern patt = Pattern
-				.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
-		Map<TileName, TileData> map = new HashMap<TileName, TileData>(180 * 90);
+  static Map<TileName, TileData> newScnMap(String path) {
+    String[] types = { "/Terrain", "/Objects" };
+    Pattern patt = Pattern
+        .compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
+    Map<TileName, TileData> map = new HashMap<TileName, TileData>(180 * 90);
 
-		for (int i = 0; i < types.length; ++i) {
-			File d = new File(path + types[i]);
-			File list[] = d.listFiles();
-			if (list != null) {
-                            // list of 10x10 dirs
-                            for (File f : list) {
-                                    Matcher m = patt.matcher(f.getName());
-                                    if (m.matches()) {
-                                            // now look inside this dir
-                                            buildScnMap(f, map, i);
-                                    }
-                            }
-                        }
-		}
-		return map;
-	}
+    for (int i = 0; i < types.length; ++i) {
+      File d = new File(path + types[i]);
+      File list[] = d.listFiles();
+      if (list != null) {
+        // list of 10x10 dirs
+        for (File f : list) {
+          Matcher m = patt.matcher(f.getName());
+          if (m.matches()) {
+            // now look inside this dir
+            buildScnMap(f, map, i);
+          }
+        }
+      }
+    }
+    return map;
+  }
 
-
-
-  int readGshhsHeader(DataInput s, GshhsHeader h)
-  {
-    int	 fl;
+  int readGshhsHeader(DataInput s, GshhsHeader h) {
+    int fl;
     try {
       h.id = s.readInt();
-      h.n  = s.readInt();	// npoints
+      h.n = s.readInt(); // npoints
       fl = s.readInt();
-      h.greenwich = (fl & 1<<16) > 0 ? true : false;
-      h.level = (byte)(fl & 0xff);
+      h.greenwich = (fl & 1 << 16) > 0 ? true : false;
+      h.level = (byte) (fl & 0xff);
       h.west = s.readInt();
       h.east = s.readInt();
       h.south = s.readInt();
       h.north = s.readInt();
       h.area = s.readInt();
-      h.areaFull  = s.readInt();
+      h.areaFull = s.readInt();
       h.container = s.readInt();
-      h.ancestor  = s.readInt();
+      h.ancestor = s.readInt();
       return h.n;
     } catch (Exception e) {
       return -1;
@@ -136,35 +130,35 @@ public class TerraMaster
 
     try {
       DataInput s = new DataInputStream(
-		//new FileInputStream(filename));
-		getClass().getClassLoader().getResourceAsStream(filename));
+      // new FileInputStream(filename));
+          getClass().getClassLoader().getResourceAsStream(filename));
       int n = 0;
       do {
-	GshhsHeader	h = new GshhsHeader();
-	n = readGshhsHeader(s, h);
-	if (n > 0) poly.add(new MapPoly(s, h));
+        GshhsHeader h = new GshhsHeader();
+        n = readGshhsHeader(s, h);
+        if (n > 0)
+          poly.add(new MapPoly(s, h));
       } while (n > 0);
     } catch (Exception e) {
-      System.out.println(filename + ": " + e);
-      System.exit(-1);
+      LOG.log(Level.SEVERE, filename, e);
     }
 
-    //System.out.format("%s: %d polys\n", filename, poly.size());
+    // System.out.format("%s: %d polys\n", filename, poly.size());
     return poly;
   }
 
-  void createAndShowGUI()
-  {
+  void createAndShowGUI() {
     // find our jar
     java.net.URL url = getClass().getClassLoader().getResource("gshhs_l.b");
-    System.err.println("getResource: " + url);
+    LOG.fine("getResource: " + url);
 
-    String geom = props.getProperty("Geometry");
+    String geom = props.getProperty(TerraMasterProperties.GEOMETRY);
     int w = 800;
     int h = 600;
     int x = 0;
     int y = 0;
-    Pattern pattern = Pattern.compile("([0-9]+)x([0-9]+)([+-][0-9]+)([+-][0-9]+)");
+    Pattern pattern = Pattern
+        .compile("([0-9]+)x([0-9]+)([+-][0-9]+)([+-][0-9]+)");
     if (geom != null) {
       Matcher matcher = pattern.matcher(geom);
       if (matcher.find()) {
@@ -178,25 +172,22 @@ public class TerraMaster
     if (path != null) {
       svn.setScnPath(new File(path));
       mapScenery = newScnMap(path);
-    }
-    else
-    {
+    } else {
       mapScenery = new HashMap<TileName, TileData>();
     }
 
     frame = new MapFrame("TerraMaster");
     frame.setSize(w, h);
     frame.setLocation(x, y);
-    //frame.setLocationRelativeTo(null);
+    // frame.setLocationRelativeTo(null);
     frame.setVisible(true);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
     /*
-    worker_polys = new Worker<ArrayList<MapPoly>, Void>("gshhs_l.b");
-    worker_polys.execute();
-    worker_borders = new Worker<ArrayList<MapPoly>, Void>("wdb_borders_l.b");
-    worker_borders.execute();
-    */
+     * worker_polys = new Worker<ArrayList<MapPoly>, Void>("gshhs_l.b");
+     * worker_polys.execute(); worker_borders = new Worker<ArrayList<MapPoly>,
+     * Void>("wdb_borders_l.b"); worker_borders.execute();
+     */
     polys = newPolyList("gshhs_l.b");
     borders = newPolyList("wdb_borders_l.b");
     frame.passPolys(polys);
@@ -205,38 +196,48 @@ public class TerraMaster
 
   public static void main(String args[]) {
 
+    try {
+      LogManager.getLogManager().readConfiguration(
+          TerraMaster.class
+              .getResourceAsStream("/terramaster.logging.properties"));
+    } catch (SecurityException | IOException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }
+    Logger LOG = Logger.getLogger(TerraMaster.class.getName());
+    // Logger.getGlobal().setLevel(Level.ALL);
+
     tilenameManager = new TileName();
 
-    fgmap = new FGMap();	// handles webqueries
+    fgmap = new FGMap(); // handles webqueries
 
     props = new Properties();
     try {
       props.load(new FileReader("terramaster.properties"));
     } catch (IOException e) {
+      LOG.log(Level.WARNING, "Couldn't load properties : " + e.toString(), e);
     }
-    
+    LOG.info("Starting TerraMaster");
+
     setTileService();
 
     SwingUtilities.invokeLater(new Runnable() {
-	public void run() {
-	  new TerraMaster().createAndShowGUI();
-	}
+      public void run() {
+        new TerraMaster().createAndShowGUI();
+      }
     });
 
   }
 
-	public static void setTileService() {
-		String server_type = props
-				.getProperty(TerraMasterProperties.SERVER_TYPE);
-		if (server_type == null || server_type.indexOf("SVN") >= 0) {
-			svn = new Svn();
-			svn.start(); // the Svn thread processes the tile queue
-		}
-		else
-		{
-			svn = new HTTPTerraSync();
-			svn.start();
-		}
-	}
+  public static void setTileService() {
+    String server_type = props.getProperty(TerraMasterProperties.SERVER_TYPE);
+    if (server_type == null || server_type.indexOf("SVN") >= 0) {
+      svn = new Svn();
+      svn.start(); // the Svn thread processes the tile queue
+    } else {
+      svn = new HTTPTerraSync();
+      svn.start();
+    }
+  }
 
 }

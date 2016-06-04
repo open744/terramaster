@@ -47,7 +47,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 
   Logger LOG = Logger.getLogger(this.getClass().getName());
 
-  static final int RESET = 1;
+  private static final int RESET = 1;
   private static final int UPDATE = 2;
   private static final int EXTEND = 3;
   private static final String TERRASYNC_SERVERS = "nameservers.bin";
@@ -108,7 +108,7 @@ public class HTTPTerraSync extends Thread implements TileService {
     } catch (IOException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
-  }
+    }
   }
 
   @Override
@@ -278,8 +278,8 @@ public class HTTPTerraSync extends Thread implements TileService {
    */
 
   private byte[] getFile(URL fileURL) throws IOException, FileNotFoundException {
-	LOG.info(fileURL.toExternalForm());
-    HttpURLConnection httpConn = (HttpURLConnection) fileURL.openConnection();
+    LOG.info(fileURL.toExternalForm());
+    httpConn = (HttpURLConnection) fileURL.openConnection();
     int responseCode = (httpConn).getResponseCode();
 
     if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -584,8 +584,8 @@ public class HTTPTerraSync extends Thread implements TileService {
           + (header.isAuthoritativeAnswer() ? "Yes" : "No"));
       if ((rcode = header.getRCode()) != DNSMsgHeader.NOERROR)
         LOG.info(rcode == DNSMsgHeader.NXDOMAIN ? (isNS ? "Domain does not exist!"
-                : "Requested name does not exist!")
-                : "Server returned error: "
+            : "Requested name does not exist!")
+            : "Server returned error: "
                 + UnsignedInt.toAbbreviation(rcode, DNSMsgHeader.RCODE_ABBREVS));
       len = records.length;
       if ((index = header.getQdCount()) < len) {
@@ -875,7 +875,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 
   private void invokeLater(final int n, final int num) {
     if (num < 0)
-        LOG.info("Update < 0");
+      LOG.info("Update < 0");
     // invoke this on the Event Disp Thread
     SwingUtilities.invokeLater(new Runnable() {
       public void run() {
