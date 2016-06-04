@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import net.sf.ivmaidns.dns.DNSConnection;
@@ -329,6 +330,10 @@ public class HTTPTerraSync extends Thread implements TileService {
   }
 
   private void syncModels() {
+    if(localBaseDir==null){
+      JOptionPane.showMessageDialog(TerraMaster.frame, "TerraSync path not set"); 
+    }
+
     try {
       syncDirectory("Models", false, TerraMaster.MODELS);
     } catch (Exception e) {
