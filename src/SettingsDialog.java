@@ -16,6 +16,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
+import javax.swing.JCheckBox;
+import java.awt.GridLayout;
 
 public class SettingsDialog extends JDialog {
 
@@ -29,16 +31,16 @@ public class SettingsDialog extends JDialog {
 	public SettingsDialog() {
 		setTitle("Settings");
 		setModal(true);
-		setBounds(100, 100, 640, 142);
+		setBounds(100, 100, 640, 270);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		getContentPane().add(contentPanel, BorderLayout.CENTER);
 		GridBagLayout gbl_contentPanel = new GridBagLayout();
 		gbl_contentPanel.columnWidths = new int[] { 0, 0, 0, 0 };
-		gbl_contentPanel.rowHeights = new int[] { 0, 22, 0 };
-		gbl_contentPanel.columnWeights = new double[] { 0.0, 1.0, 0.0,
+		gbl_contentPanel.rowHeights = new int[] {0, 22, 0};
+		gbl_contentPanel.columnWeights = new double[] { 0.0, 1.0, 1.0,
 				Double.MIN_VALUE };
-		gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, 1.0 };
 		contentPanel.setLayout(gbl_contentPanel);
 		{
 			JLabel lblSceneryPath = new JLabel("Scenery Path :");
@@ -85,7 +87,7 @@ public class SettingsDialog extends JDialog {
 			JLabel lblScenerySource = new JLabel("Scenery Source :");
 			GridBagConstraints gbc_lblScenerySource = new GridBagConstraints();
 			gbc_lblScenerySource.anchor = GridBagConstraints.EAST;
-			gbc_lblScenerySource.insets = new Insets(0, 0, 0, 5);
+			gbc_lblScenerySource.insets = new Insets(0, 0, 5, 5);
 			gbc_lblScenerySource.gridx = 0;
 			gbc_lblScenerySource.gridy = 1;
 			contentPanel.add(lblScenerySource, gbc_lblScenerySource);
@@ -96,7 +98,7 @@ public class SettingsDialog extends JDialog {
 					"Terrasync (SVN)", "HTTP" }));
 			cmbScenerySource.setSelectedItem(TerraMaster.props.getProperty(TerraMasterProperties.SERVER_TYPE));
 			GridBagConstraints gbc_comboBox = new GridBagConstraints();
-			gbc_comboBox.insets = new Insets(0, 0, 0, 5);
+			gbc_comboBox.insets = new Insets(0, 0, 5, 5);
 			gbc_comboBox.fill = GridBagConstraints.HORIZONTAL;
 			gbc_comboBox.gridx = 1;
 			gbc_comboBox.gridy = 1;
@@ -149,9 +151,42 @@ public class SettingsDialog extends JDialog {
 				}
 			});
 			GridBagConstraints gbc_addSettingsButton = new GridBagConstraints();
+			gbc_addSettingsButton.insets = new Insets(0, 0, 5, 0);
 			gbc_addSettingsButton.gridx = 2;
 			gbc_addSettingsButton.gridy = 1;
 			contentPanel.add(addSettingsButton, gbc_addSettingsButton);
+		}
+		{
+			JLabel lblNewLabel = new JLabel("Sync");
+			GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
+			gbc_lblNewLabel.insets = new Insets(0, 0, 5, 5);
+			gbc_lblNewLabel.gridx = 0;
+			gbc_lblNewLabel.gridy = 2;
+			contentPanel.add(lblNewLabel, gbc_lblNewLabel);
+		}
+		{
+			JPanel panel = new JPanel();
+			GridBagConstraints gbc_panel = new GridBagConstraints();
+			gbc_panel.insets = new Insets(0, 0, 5, 5);
+			gbc_panel.fill = GridBagConstraints.BOTH;
+			gbc_panel.gridx = 1;
+			gbc_panel.gridy = 2;
+			contentPanel.add(panel, gbc_panel);
+			panel.setLayout(new GridLayout(3, 1, 0, 0));
+			{
+				JCheckBox chckbxObjects = new JCheckBox("Objects");
+				chckbxObjects.setSelected(true);
+				panel.add(chckbxObjects);
+			}
+			{
+				JCheckBox chckbxTerrain = new JCheckBox("Terrain");
+				chckbxTerrain.setSelected(true);
+				panel.add(chckbxTerrain);
+			}
+			{
+				JCheckBox chckbxBuildings = new JCheckBox("Buildings");
+				panel.add(chckbxBuildings);
+			}
 		}
 	}
 
