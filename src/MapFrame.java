@@ -261,6 +261,8 @@ public class MapFrame extends JFrame {
 
       butReset = new JButton(new ImageIcon(getClass().getClassLoader()
           .getResource("globe.png")));
+      
+      butReset.setPreferredSize(butClear.getPreferredSize());
       GridBagConstraints gbc_butReset = new GridBagConstraints();
       gbc_butReset.anchor = GridBagConstraints.NORTHWEST;
       gbc_butReset.insets = new Insets(0, 0, 5, 5);
