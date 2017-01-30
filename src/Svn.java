@@ -23,6 +23,10 @@ import org.tmatesoft.svn.core.internal.io.dav.DAVRepositoryFactory;
 
 // svn --force co http://terrascenery.googlecode.com/svn/trunk/data/Scenery/Terrain/e100n00/e104n00
 
+/**
+ * @deprecated SVN will be discontinued
+ */
+
 class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller,
     ISVNExternalsHandler, TileService {
   Logger LOG = Logger.getLogger(this.getClass().getName());
@@ -447,6 +451,15 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller,
   @Override
   public Collection<TileName> getSyncList() {
     return syncList;
+  }
+
+  /**
+   * 
+   */
+  @Override
+  public void setTypes(boolean selected, boolean selected2, boolean selected3) {
+    // TODO Auto-generated method stub
+    
   }
 
 }

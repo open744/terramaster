@@ -37,7 +37,7 @@ public class TerraMaster {
 	public GshhsHeader gshhsHeader;
 
 	public static Map<TileName, TileData> mapScenery;
-	static final int TERRAIN = 0, OBJECTS = 1, MODELS = 2, AIRPORTS = 3;
+	static final int TERRAIN = 0, OBJECTS = 1, MODELS = 2, AIRPORTS = 3, BUILDINGS = 4;
 
 	public static TileName tilenameManager;
 	/** The service getting the tiles */
@@ -61,6 +61,10 @@ public class TerraMaster {
 			t.objects = true;
 			t.dir_obj = i;
 			break;
+    case BUILDINGS:
+      t.buildings = true;
+      t.dir_buildings = i;
+      break;
 		}
 		map.put(n, t);
 	}
@@ -167,7 +171,7 @@ public class TerraMaster {
 				y = Integer.parseInt(matcher.group(4).replaceFirst("\\+", ""));
 			}
 		}
-		String path = props.getProperty("SceneryPath");
+		String path = props.getProperty(Settings.SceneryPath.name());
 		if (path != null) {
 			svn.setScnPath(new File(path));
 			mapScenery = newScnMap(path);

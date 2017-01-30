@@ -18,4 +18,5 @@ public interface TileService {
 
 	void delete(Collection<TileName> selection);
 
+  void setTypes(boolean selected, boolean selected2, boolean selected3);
 }

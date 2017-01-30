@@ -1,10 +1,10 @@
-import	java.io.File;
-import	java.awt.Polygon;
+import java.io.File;
+import java.awt.Polygon;
 
 public class TileData {
-  public Polygon	poly;
-  public boolean	terrain, objects;
-  public File		dir_terr, dir_obj;
+  public Polygon poly;
+  public boolean terrain, objects, buildings;
+  public File dir_terr, dir_obj, dir_buildings;
 
   public TileData() {
     terrain = false;
