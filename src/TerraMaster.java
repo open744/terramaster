@@ -156,22 +156,7 @@ public class TerraMaster {
 		java.net.URL url = getClass().getClassLoader().getResource("gshhs_l.b");
 		LOG.fine("getResource: " + url);
 
-		String geom = props.getProperty(TerraMasterProperties.GEOMETRY);
-		int w = 800;
-		int h = 600;
-		int x = 0;
-		int y = 0;
-		Pattern pattern = Pattern.compile("([0-9]+)x([0-9]+)([+-][0-9]+)([+-][0-9]+)");
-		if (geom != null) {
-			Matcher matcher = pattern.matcher(geom);
-			if (matcher.find()) {
-				w = Integer.parseInt(matcher.group(1));
-				h = Integer.parseInt(matcher.group(2));
-				x = Integer.parseInt(matcher.group(3).replaceFirst("\\+", ""));
-				y = Integer.parseInt(matcher.group(4).replaceFirst("\\+", ""));
-			}
-		}
-		String path = props.getProperty(Settings.SceneryPath.name());
+		String path = props.getProperty(TerraMasterProperties.SCENERY_PATH);
 		if (path != null) {
 			svn.setScnPath(new File(path));
 			mapScenery = newScnMap(path);
@@ -180,8 +165,7 @@ public class TerraMaster {
 		}
 
 		frame = new MapFrame("TerraMaster");
-		frame.setSize(w, h);
-		frame.setLocation(x, y);
+		frame.restoreSettings();
 		// frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -225,7 +209,7 @@ public class TerraMaster {
 		LOG.info("Starting TerraMaster");
 
 		setTileService();
-
+		
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				new TerraMaster().createAndShowGUI();

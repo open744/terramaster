@@ -200,7 +200,7 @@ public class SettingsDialog extends JDialog {
 		}
 	}
 
-  private class SwingAction extends AbstractAction {
+private class SwingAction extends AbstractAction {
     public SwingAction() {
       putValue(NAME, "Terrain");
       putValue(SHORT_DESCRIPTION, "Some short description");

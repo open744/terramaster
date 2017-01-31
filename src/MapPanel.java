@@ -202,10 +202,7 @@ class MapPanel extends JPanel {
 		public void mouseWheelMoved(MouseWheelEvent e) {
 			int n = e.getWheelRotation();
 			fromMetres -= n;
-			pj.setFromMetres(Math.pow(2, fromMetres / 4));
-			pj.initialize();
-			// repaint(new Rectangle(0, 0, getWidth(), getHeight()));
-			mapFrame.repaint();
+			setFromMetres();
 		}
 	}
 
@@ -236,8 +233,9 @@ class MapPanel extends JPanel {
 	Projection pj;
 	double projectionLatitude = -Math.toRadians(-30),
 			projectionLongitude = Math.toRadians(145), totalFalseEasting = 0,
-			totalFalseNorthing = 0, fromMetres = 1,// 3e-4,
+			totalFalseNorthing = 0, // 3e-4,
 			mapRadius = HALFPI;
+	double fromMetres = 1;
 	public final static int NORTH_POLE = 1;
 	public final static int SOUTH_POLE = 2;
 	public final static int EQUATOR = 3;
@@ -335,6 +333,14 @@ class MapPanel extends JPanel {
 
 	public void toggleProj() {
 		if (isWinkel)
+			setOrtho();
+		else
+			setWinkel();
+	}
+
+	public void setProjection( boolean winkel ) {
+		isWinkel = winkel;
+		if (!isWinkel)
 			setOrtho();
 		else
 			setWinkel();
@@ -820,5 +826,12 @@ class MapPanel extends JPanel {
 		offScreen = new BufferedImage(width, height,
 				BufferedImage.TYPE_INT_ARGB);
 		offScreen.getGraphics().setClip(0, 0, width, height);
+	}
+
+	public void setFromMetres() {
+		pj.setFromMetres(Math.pow(2, fromMetres / 4));
+		pj.initialize();
+		// repaint(new Rectangle(0, 0, getWidth(), getHeight()));
+		mapFrame.repaint();
 	}
 }

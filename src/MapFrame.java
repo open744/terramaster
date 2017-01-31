@@ -8,6 +8,8 @@ import java.awt.event.WindowEvent;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -39,7 +41,7 @@ public class MapFrame extends JFrame {
   public class MFAdapter extends ComponentAdapter implements ActionListener {
 
     public void componentMoved(ComponentEvent e) {
-      updateGeom();
+      storeSettings();
     }
 
     public void componentResized(ComponentEvent e) {
@@ -57,7 +59,7 @@ public class MapFrame extends JFrame {
       // progressBar.setLocation(470, 9);
       // map.setLocation(0, 40);
       map.setSize(getWidth(), getHeight() - 40);
-      updateGeom();
+      storeSettings();
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -148,7 +150,7 @@ public class MapFrame extends JFrame {
       addWindowListener(new WindowAdapter() {
         public void windowClosing(WindowEvent e) {
           TerraMaster.svn.quit();
-          updateGeom();
+          storeSettings();
           try {
             TerraMaster.props.store(new FileWriter("terramaster.properties"),
                 null);
@@ -334,10 +336,40 @@ public class MapFrame extends JFrame {
      * .getKeyStroke(^S), "SYNC"); getActionMap().put("
      */
   }
+  
+  public void restoreSettings(){
+		String geom = TerraMaster.props.getProperty(TerraMasterProperties.GEOMETRY);
+		int w = 800;
+		int h = 600;
+		int x = 0;
+		int y = 0;
+		Pattern pattern = Pattern.compile("([0-9]+)x([0-9]+)([+-][0-9]+)([+-][0-9]+)");
+		if (geom != null) {
+			Matcher matcher = pattern.matcher(geom);
+			if (matcher.find()) {
+				w = Integer.parseInt(matcher.group(1));
+				h = Integer.parseInt(matcher.group(2));
+				x = Integer.parseInt(matcher.group(3).replaceFirst("\\+", ""));
+				y = Integer.parseInt(matcher.group(4).replaceFirst("\\+", ""));
+			}
+		}
+		setSize(w, h);
+		setLocation(x, y);	  
+		
+	    map.projectionLatitude = Double.parseDouble(TerraMaster.props.getProperty(TerraMasterProperties.PROJECTION_LAT, "0"));
+	    map.projectionLongitude = Double.parseDouble(TerraMaster.props.getProperty(TerraMasterProperties.PROJECTION_LON, "0"));
+	    map.fromMetres = Double.parseDouble(TerraMaster.props.getProperty(TerraMasterProperties.FROM_METRES, "1"));
+	    map.setProjection(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraMasterProperties.PROJECTION, "false")));
+	    map.setFromMetres();
+  }
 
-  private void updateGeom() {
-    TerraMaster.props.setProperty("Geometry",
+  private void storeSettings() {
+    TerraMaster.props.setProperty(TerraMasterProperties.GEOMETRY,
         String.format("%dx%d%+d%+d", getWidth(), getHeight(), getX(), getY()));
+    TerraMaster.props.setProperty(TerraMasterProperties.PROJECTION, Boolean.toString(map.isWinkel));
+    TerraMaster.props.setProperty(TerraMasterProperties.PROJECTION_LAT, Double.toString(map.projectionLatitude));
+    TerraMaster.props.setProperty(TerraMasterProperties.PROJECTION_LON, Double.toString(map.projectionLongitude));
+    TerraMaster.props.setProperty(TerraMasterProperties.FROM_METRES, Double.toString(map.fromMetres));
   }
 
   public void passPolys(ArrayList<MapPoly> p) {
