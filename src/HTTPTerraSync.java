@@ -608,20 +608,31 @@ public class HTTPTerraSync extends Thread implements TileService {
 								LOG.info(str);
 							}
 							LOG.info(" ");
-							String regex = (String) (records[index].getRData())[4];
+							Object[] rData = records[index].getRData();
+							if( rData.length >= 4)
+							{
+              String regex = (String) rData[4];
 							String[] tokens = regex.split("!");
 							Pattern p = Pattern.compile(tokens[1]);
 							Matcher m = p.matcher(qName.getAbsolute());
 							if (m.find())
+							{
 								try {
 									urls.add(new URL(m.replaceAll(tokens[2] + "/")));
 								} catch (MalformedURLException e) {
 									e.printStackTrace();
 								}
+							}
+							}
 							LOG.info(records[index].toString(null, null, false));
 							index++;
 							count--;
 						} while (index < len);
+						if( urls.size() > 0 )
+						{
+						  //We have some servers so we can return
+						  return;
+						}
 					} else if (rcode == DNSMsgHeader.NOERROR) {
 						boolean found = false;
 						LOG.info("Found authoritative name servers:");
