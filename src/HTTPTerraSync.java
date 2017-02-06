@@ -46,10 +46,10 @@ import net.sf.ivmaidns.util.UnsignedInt;
 
 public class HTTPTerraSync extends Thread implements TileService {
 
-	Logger LOG = Logger.getLogger(this.getClass().getName());
+	Logger log = Logger.getLogger(this.getClass().getName());
 
 	private static final int RESET = 1;
-	private static final int UPDATE = 2;
+	private static final int UPDATE = 2;  
 	private static final int EXTEND = 3;
 	private static final String TERRASYNC_SERVERS = "nameservers.bin";
 	private LinkedList<TileName> syncList = new LinkedList<TileName>();
@@ -62,7 +62,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	public HTTPTerraSync() {
 		super("HTTPTerraSync");
-		System.setProperty("java.net.useSystemProxies", "true");
+		
 	}
 
 	@Override
@@ -97,21 +97,25 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	}
 
-	@Override
-	public void cancel() {
-		cancelFlag = true;
-		synchronized (syncList) {
-			syncList.clear();
-		}
-		try {
-			if (httpConn != null && httpConn.getInputStream() != null) {
-				httpConn.getInputStream().close();
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+  @Override
+  public void cancel() {
+    cancelFlag = true;
+    synchronized (syncList) {
+      syncList.clear();
+    }
+    (new Thread() {
+      @Override
+      public void run() {
+        try {
+          if (httpConn != null && httpConn.getInputStream() != null) {
+            httpConn.getInputStream().close();
+          }
+        } catch (IOException e) {
+          //Expecting to throw error
+        }
+      }
+    }).start();
+  }
 
 	@Override
 	public void delete(Collection<TileName> selection) {
@@ -126,6 +130,9 @@ public class HTTPTerraSync extends Thread implements TileService {
 			if (d.objects) {
 				deltree(d.dir_obj);
 			}
+      if (d.buildings) {
+        deltree(d.dir_buildings);
+      }
 
 			synchronized (syncList) {
 				syncList.remove(n);
@@ -160,8 +167,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 				}
 			}
 			HashSet<String> apt = new HashSet<String>();
-			invokeLater(EXTEND, syncList.size() * 400 + 3000); // update
-																// progressBar
+			//update progressbar
+		    invokeLater(EXTEND, syncList.size() * 400 + 3000); // update
 			while (syncList.size() > 0) {
 				queryDNSServer();
 				final TileName n;
@@ -173,7 +180,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 				if (name.startsWith("MODELS")) {
 					int i = name.indexOf('-');
 					if (i > -1)
-						syncDirectory(name.substring(i + 1), false, TerraMaster.MODELS);
+						syncDirectory(name.substring(i + 1), false, TerraSyncDirectoryTypes.MODELS);
 					else
 						syncModels();
 				} else {
@@ -184,8 +191,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 							HashSet<String> apt2 = syncTile(path);
 							apt.addAll(apt2);
 						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+		          log.log(Level.WARNING, "Couldn't sync tile " + path, e);
 						}
 				}
 
@@ -197,8 +203,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 				try {
 					syncAirports(apt.toArray(new String[0]));
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				  log.log(Level.WARNING, "Couldn't get airports ", e);
 				}
 			}
 
@@ -216,18 +221,26 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	private HashSet<String> syncTile(String path) throws IOException {
 		try {
-			int updates = syncDirectory("Terrain/" + path, false, TerraMaster.TERRAIN);
-			invokeLater(UPDATE, 200 - updates); // update progressBar
-			syncDirectory("Objects/" + path, false, TerraMaster.OBJECTS);
-			invokeLater(UPDATE, 200 - updates); // update progressBar
-      syncDirectory("Buildings/" + path, false, TerraMaster.BUILDINGS);
-      invokeLater(UPDATE, 200 - updates); // update progressBar
-			HashSet<String> apt = findAirports(new File(localBaseDir, "Terrain/" + path));
+		  if(terrain)
+		  {
+        int updates = syncDirectory(TerraSyncDirectoryTypes.TERRAIN.dirname + path, false, TerraSyncDirectoryTypes.TERRAIN);        
+        invokeLater(UPDATE, 200 - updates); // update progressBar
+		  }
+      if(objects)
+      {
+        int updates = syncDirectory(TerraSyncDirectoryTypes.OBJECTS.dirname + path, false, TerraSyncDirectoryTypes.OBJECTS);        
+        invokeLater(UPDATE, 200 - updates); // update progressBar
+      }
+      if(buildings)
+      {
+        int updates = syncDirectory(TerraSyncDirectoryTypes.BUILDINGS.dirname + path, false, TerraSyncDirectoryTypes.BUILDINGS);        
+        invokeLater(UPDATE, 200 - updates); // update progressBar
+      }
+			HashSet<String> apt = findAirports(new File(localBaseDir, TerraSyncDirectoryTypes.TERRAIN + path));
 			return apt;
 
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		  log.log(Level.SEVERE, "Can't sync tile " + path, e);
 		}
 		return new HashSet<String>();
 	}
@@ -250,7 +263,11 @@ public class HTTPTerraSync extends Thread implements TileService {
 		return set;
 	}
 
-	// sync "Airports/W/A/T"
+	/**
+	 * sync "Airports/W/A/T"
+	 * @param names
+	 * @throws IOException
+	 */
 	private void syncAirports(String[] names) throws IOException {
 		long rev;
 
@@ -261,7 +278,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 		}
 		invokeLater(UPDATE, 3000 - nodes.size() * 100);
 		for (String node : nodes) {
-			int updates = syncDirectory(node, false, TerraMaster.AIRPORTS);
+			int updates = syncDirectory(node, false, TerraSyncDirectoryTypes.AIRPORTS);
 			invokeLater(UPDATE, 100 - updates);
 		}
 	}
@@ -281,7 +298,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 	 */
 
 	private byte[] getFile(URL fileURL) throws IOException, FileNotFoundException {
-		LOG.info(fileURL.toExternalForm());
+		log.info(fileURL.toExternalForm());
 		httpConn = (HttpURLConnection) fileURL.openConnection();
 		int responseCode = (httpConn).getResponseCode();
 
@@ -301,10 +318,10 @@ public class HTTPTerraSync extends Thread implements TileService {
 				fileName = fileURL.getFile();
 			}
 
-			LOG.info("Content-Type = " + contentType);
-			LOG.info("Content-Disposition = " + disposition);
-			LOG.info("Content-Length = " + contentLength);
-			LOG.info("fileName = " + fileName);
+			log.info("Content-Type = " + contentType);
+			log.info("Content-Disposition = " + disposition);
+			log.info("Content-Length = " + contentLength);
+			log.info("fileName = " + fileName);
 
 			// opens input stream from the HTTP connection
 			InputStream inputStream = httpConn.getInputStream();
@@ -321,10 +338,10 @@ public class HTTPTerraSync extends Thread implements TileService {
 			outputStream.close();
 			inputStream.close();
 
-			LOG.info("File downloaded");
+			log.info("File downloaded");
 			return outputStream.toByteArray();
 		} else {
-			LOG.warning("No file to download. Server replied HTTP code: " + responseCode);
+			log.warning("No file to download. Server replied HTTP code: " + responseCode);
 		}
 		httpConn.disconnect();
 		return "".getBytes();
@@ -336,9 +353,9 @@ public class HTTPTerraSync extends Thread implements TileService {
 		}
 
 		try {
-			syncDirectory("Models", false, TerraMaster.MODELS);
+			syncDirectory("Models", false, TerraSyncDirectoryTypes.MODELS);
 		} catch (Exception e) {
-			LOG.log(Level.SEVERE, e.toString(), e);
+			log.log(Level.SEVERE, e.toString(), e);
 		}
 	}
 
@@ -347,16 +364,16 @@ public class HTTPTerraSync extends Thread implements TileService {
 	 * 
 	 * @param path
 	 * @param force
-	 * @param type
+	 * @param models
 	 * @return
 	 */
 
-	private int syncDirectory(String path, boolean force, int type) {
+	private int syncDirectory(String path, boolean force, TerraSyncDirectoryTypes models) {
 		try {
 			int updates = 0;
 			if (cancelFlag)
 				return updates;
-			String remoteDirIndex = new String(getFile(new URL(getBaseUrl().toExternalForm() + path + "/.dirindex")));
+			String remoteDirIndex = new String(getFile(new URL(getBaseUrl().toExternalForm() + path.replace("\\", "/") + "/.dirindex")));
 			String localDirIndex = readDirIndex(path);
 			String[] lines = remoteDirIndex.split("\r?\n");
 			String[] localLines = localDirIndex.split("\r?\n");
@@ -377,13 +394,13 @@ public class HTTPTerraSync extends Thread implements TileService {
 					// otherwise check the SHA against
 					// the one from the server
 					if (force || !splitLine[2].equals(lookup.get(splitLine[1])))
-						updates += syncDirectory(path + "/" + splitLine[1], force, type);
+						updates += syncDirectory(path + "/" + splitLine[1], force, models);
 				} else if (file.startsWith("f:")) {
 					// We've got a file
 					File localFile = new File(localBaseDir, path + File.separator + splitLine[1]);
 					boolean load = true;
 					if (localFile.exists()) {
-						LOG.info(localFile.getAbsolutePath());
+						log.info(localFile.getAbsolutePath());
 						byte[] b = calcSHA1(localFile);
 						String bytesToHex = bytesToHex(b);
 						// LOG.info(bytesToHex);
@@ -395,7 +412,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 					}
 					if (load) {
 						byte[] fileContent = getFile(
-								new URL(getBaseUrl().toExternalForm() + path + "/" + splitLine[1]));
+								new URL(getBaseUrl().toExternalForm() + path.replace("\\", "/") + "/" + splitLine[1]));
 						FileOutputStream fos = new FileOutputStream(localFile);
 						fos.write(fileContent);
 						fos.flush();
@@ -404,10 +421,10 @@ public class HTTPTerraSync extends Thread implements TileService {
 					invokeLater(UPDATE, 1);
 					updates++;
 				}
-				LOG.info(file);
+				log.info(file);
 			}
-			if (type == TerraMaster.OBJECTS || type == TerraMaster.TERRAIN || type == TerraMaster.BUILDINGS)
-				TerraMaster.addScnMapTile(TerraMaster.mapScenery, new File(localBaseDir, path), type);
+			if (models == TerraSyncDirectoryTypes.OBJECTS || models == TerraSyncDirectoryTypes.TERRAIN || models == TerraSyncDirectoryTypes.BUILDINGS)
+				TerraMaster.addScnMapTile(TerraMaster.mapScenery, new File(localBaseDir, path), models);
 
 			storeDirIndex(path, remoteDirIndex);
 			return updates;
@@ -496,6 +513,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 	}
 
 	private void writeFile(File file, String remoteDirIndex) throws IOException {
+	  file.getParentFile().mkdirs();
 		FileOutputStream fos = new FileOutputStream(file);
 		fos.write(remoteDirIndex.getBytes());
 		fos.flush();
@@ -516,6 +534,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 		String queryName = null;
 		String fileName = null;
 		InetAddress server;
+		//Get the system dns
 		List<String> nameservers = sun.net.dns.ResolverConfiguration.open().nameservers();
 		//Add google
 		nameservers.add(0, "8.8.8.8");
@@ -523,22 +542,23 @@ public class HTTPTerraSync extends Thread implements TileService {
 			try {
 				server = InetAddress.getByName(serverName);
 			} catch (UnknownHostException e) {
-				System.err.println("Host unknown: " + serverName);
-				return;
+			  log.log(Level.WARNING, "Host unknown: " + serverName);
+				continue;
 			}
 			DNSName qName = null;
 			try {
 				qName = new DNSName("terrasync.flightgear.org", null);
-			} catch (NumberFormatException e) {
-				e.printStackTrace();
+			} catch (Exception e) {
+			  log.log(Level.WARNING, "DNS Name can't be created", e);
+        continue;
 			}
 
-			LOG.info("Connecting to " + server + " to query " + qName.getDomain() + "...");
+			log.info("Connecting to " + server + " to query " + qName.getDomain() + "...");
 			DNSConnection connection = new DNSConnection();
 			try {
 				connection.open(server);
 			} catch (IOException e) {
-				LOG.log(Level.WARNING, "Could not establish connection to: " + serverName, e);
+				log.log(Level.WARNING, "Could not establish connection to: " + serverName, e);
 			}
 			DNSMsgHeader qHeader, header = null;
 			DNSRecord[] records = null;
@@ -547,7 +567,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 			DNSName[] servers = new DNSName[0];
 			rcode = DNSMsgHeader.NOERROR;
 			if (isNS || !isZone) {
-				LOG.info("Sending " + (qName.getLevel() > 0 ? qName.getRelativeAt(0) : "root") + (isNS ? " domain" : "")
+				log.fine("Sending " + (qName.getLevel() > 0 ? qName.getRelativeAt(0) : "root") + (isNS ? " domain" : "")
 						+ " query...");
 				qHeader = DNSMsgHeader.construct(DNSMsgHeader.QUERY, true, 1, 0, 0, 0, false);
 				records = new DNSRecord[1];
@@ -556,17 +576,15 @@ public class HTTPTerraSync extends Thread implements TileService {
 				try {
 					connection.send(msgBytes);
 				} catch (IOException e) {
-					System.err.println("Data transmission error!");
-					e.printStackTrace();
+				  log.log(Level.WARNING, "Data transmission error!", e);
 					continue;
 				}
-				LOG.info("Receiving answer...");
+				log.fine("Receiving answer...");
 				try {
 					msgBytes = connection.receive(true);
 				} catch (IOException e) {
 					connection.close();
-					System.err.println("Data transmission error!");
-					e.printStackTrace();
+          log.log(Level.WARNING, "Data transmission error!", e);
 					continue;
 				}
 				if ((records = DNSConnection.decode(msgBytes)) == null) {
@@ -577,12 +595,12 @@ public class HTTPTerraSync extends Thread implements TileService {
 				header = new DNSMsgHeader(msgBytes);
 				if (!header.isResponse() || header.getId() != qHeader.getId()) {
 					connection.close();
-					LOG.warning("Bad protocol message header: " + header.toString());
+					log.warning("Bad protocol message header: " + header.toString());
 					continue;
 				}
-				LOG.info("Authoritative answer: " + (header.isAuthoritativeAnswer() ? "Yes" : "No"));
+				log.info("Authoritative answer: " + (header.isAuthoritativeAnswer() ? "Yes" : "No"));
 				if ((rcode = header.getRCode()) != DNSMsgHeader.NOERROR)
-					LOG.info(rcode == DNSMsgHeader.NXDOMAIN
+					log.info(rcode == DNSMsgHeader.NXDOMAIN
 							? (isNS ? "Domain does not exist!" : "Requested name does not exist!")
 							: "Server returned error: "
 									+ UnsignedInt.toAbbreviation(rcode, DNSMsgHeader.RCODE_ABBREVS));
@@ -591,7 +609,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 					count = header.getAnCount();
 					if (!isNS) {
 						int section = 1;
-						LOG.info("Answer:");
+						log.info("Answer:");
 						urls.clear();
 						do {
 
@@ -605,9 +623,9 @@ public class HTTPTerraSync extends Thread implements TileService {
 									count = header.getArCount();
 									str = "Additional:";
 								}
-								LOG.info(str);
+								log.info(str);
 							}
-							LOG.info(" ");
+							log.info(" ");
 							Object[] rData = records[index].getRData();
 							if( rData.length >= 4)
 							{
@@ -624,7 +642,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 								}
 							}
 							}
-							LOG.info(records[index].toString(null, null, false));
+							log.info(records[index].toString(null, null, false));
 							index++;
 							count--;
 						} while (index < len);
@@ -635,21 +653,21 @@ public class HTTPTerraSync extends Thread implements TileService {
 						}
 					} else if (rcode == DNSMsgHeader.NOERROR) {
 						boolean found = false;
-						LOG.info("Found authoritative name servers:");
+						log.info("Found authoritative name servers:");
 						servers = new DNSName[count];
 						for (int index2 = 0; index2 < count && index < len; index2++)
 							if ((resRecord = records[index++]).getRType() == DNSRecord.NS
 									&& qName.equals(resRecord.getRName())) {
 								if (!found) {
 									found = true;
-									LOG.info("");
+									log.info("");
 								}
-								LOG.info(" ");
-								LOG.info((servers[index2] = (DNSName) resRecord.getRData()[0]).getAbsolute());
+								log.info(" ");
+								log.info((servers[index2] = (DNSName) resRecord.getRData()[0]).getAbsolute());
 							}
 						if (!found) {
-							LOG.info(" none");
-							LOG.info("Domain does not exist!");
+							log.info(" none");
+							log.info("Domain does not exist!");
 							rcode = DNSMsgHeader.NXDOMAIN;
 						}
 					}
@@ -688,7 +706,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 								return;
 						} while (servers[index++] == null);
 						serverName = servers[index - 1].getRelativeAt(0);
-						LOG.info("Connecting to " + serverName + "...");
+						log.info("Connecting to " + serverName + "...");
 						try {
 							server = InetAddress.getByName(serverName);
 						} catch (UnknownHostException e) {
@@ -710,7 +728,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 							continue;
 						}
 					}
-					LOG.info("Sending zone query for: " + qName.getRelativeAt(0));
+					log.info("Sending zone query for: " + qName.getRelativeAt(0));
 					qHeader = DNSMsgHeader.construct(DNSMsgHeader.QUERY, false, 1, 0, 0, 0, false);
 					records = new DNSRecord[1];
 					records[0] = new DNSRecord(qName, DNSRecord.AXFR, DNSRecord.IN);
@@ -724,7 +742,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 						rcode = 7;
 						continue;
 					}
-					LOG.info("Waiting for response...");
+					log.info("Waiting for response...");
 					receivedBytesCount = 0;
 					errStr = null;
 					time = (int) System.currentTimeMillis();
@@ -784,7 +802,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 						if (fileName != null) {
 							DNSRecord[] curRecords = records;
 							receivedBytesCount = msgBytes.length;
-							LOG.info("Getting zone records ");
+							log.info("Getting zone records ");
 							records[0] = resRecord;
 							rcode--;
 							count++;
@@ -794,7 +812,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 									if (resRecord.getRClass() == DNSRecord.IN
 											|| resRecord.getRName().isInDomain(qName, false)) {
 										if (size % 100 == 1) {
-											LOG.info(".");
+											log.info(".");
 										}
 										records[size++] = resRecord;
 									}
@@ -832,7 +850,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 					time = (int) System.currentTimeMillis() - time;
 					connection.close();
 					if (size > 0)
-						LOG.info("");
+						log.info("");
 					if (errStr != null)
 						System.err.println(errStr);
 					if (size < 0)
@@ -851,16 +869,16 @@ public class HTTPTerraSync extends Thread implements TileService {
         }
 				ois.writeObject(s);
 			} catch (IOException e1) {
-			  LOG.log(Level.WARNING, e1.getMessage(), e1);
+			  log.log(Level.WARNING, e1.getMessage(), e1);
 			}
 		} else {
 			try {
 				ObjectInputStream ois = new ObjectInputStream(new FileInputStream(TERRASYNC_SERVERS));
 				urls = (ArrayList<URL>) ois.readObject();
 			} catch (IOException e1) {
-        LOG.log(Level.WARNING, e1.getMessage(), e1);
+        log.log(Level.WARNING, e1.getMessage(), e1);
 			} catch (ClassNotFoundException e) {
-        LOG.log(Level.WARNING, e.getMessage(), e);
+        log.log(Level.WARNING, e.getMessage(), e);
 			}
 		}
 	}
@@ -873,7 +891,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	private void invokeLater(final int action, final int num) {
 		if (num < 0)
-			LOG.info("Update < 0");
+			log.info("Update < 0");
 		// invoke this on the Event Disp Thread
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
@@ -903,6 +921,13 @@ public class HTTPTerraSync extends Thread implements TileService {
     terrain = t;
     objects = o;
     buildings = b;
+  }
+
+  @Override
+  public void restoreSettings() {
+    terrain = Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.TERRAIN.name(), "true"));
+    objects = Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.OBJECTS.name(), "true"));
+    buildings = Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.BUILDINGS.name(), "false"));
   }
 
 }

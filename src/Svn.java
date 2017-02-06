@@ -163,7 +163,7 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller,
   // name : "e120s20/e123s11"
   private void checkout(String name) {
     String[] types = { "Terrain/", "Objects/" };
-    int[] ntype = { TerraMaster.TERRAIN, TerraMaster.OBJECTS };
+    TerraSyncDirectoryTypes[] ntype = { TerraSyncDirectoryTypes.TERRAIN, TerraSyncDirectoryTypes.OBJECTS };
     if (pathBase == null) {
       JOptionPane
           .showMessageDialog(TerraMaster.frame, "TerraSync path not set");
@@ -458,6 +458,12 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller,
    */
   @Override
   public void setTypes(boolean selected, boolean selected2, boolean selected3) {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public void restoreSettings() {
     // TODO Auto-generated method stub
     
   }

@@ -119,6 +119,9 @@ public class SettingsDialog extends JDialog {
 							TerraMaster.setTileService();
 							TerraMaster.svn.setScnPath(new File(txtScenerypath.getText()));
 							TerraMaster.svn.setTypes(chckbxTerrain.isSelected(), chckbxObjects.isSelected(), chckbxBuildings.isSelected());
+							TerraMaster.props.setProperty(TerraSyncDirectoryTypes.TERRAIN.name(), Boolean.toString(chckbxTerrain.isSelected())); 
+              TerraMaster.props.setProperty(TerraSyncDirectoryTypes.OBJECTS.name(), Boolean.toString(chckbxObjects.isSelected())); 
+              TerraMaster.props.setProperty(TerraSyncDirectoryTypes.BUILDINGS.name(), Boolean.toString(chckbxBuildings.isSelected())); 
 						} catch (Exception x) {
 							x.printStackTrace();
 						}
@@ -183,19 +186,19 @@ public class SettingsDialog extends JDialog {
 			contentPanel.add(panel, gbc_panel);
 			panel.setLayout(new GridLayout(3, 1, 0, 0));
 			{
-				chckbxObjects = new JCheckBox("Objects");
-				chckbxObjects.setSelected(true);
-				panel.add(chckbxObjects);
+				chckbxTerrain = new JCheckBox("Terrain");
+				panel.add(chckbxTerrain);
+				chckbxTerrain.setSelected(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.TERRAIN.name(), "false")));
 			}
 			{
-				chckbxTerrain = new JCheckBox("Terrain");
-				chckbxTerrain.setAction(action);
-				chckbxTerrain.setSelected(true);
-				panel.add(chckbxTerrain);
+				chckbxObjects = new JCheckBox("Objects");
+				panel.add(chckbxObjects);
+				chckbxObjects.setSelected(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.OBJECTS.name(), "false")));
 			}
 			{
 				chckbxBuildings = new JCheckBox("Buildings");
 				panel.add(chckbxBuildings);
+				chckbxBuildings.setSelected(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.BUILDINGS.name(), "false")));
 			}
 		}
 	}

@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -30,14 +31,13 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 public class TerraMaster {
-	Logger LOG = Logger.getLogger(this.getClass().getName());
+	Logger log = Logger.getLogger(this.getClass().getName());
 	public static ArrayList<MapPoly> polys, borders;
 
 	static MapFrame frame;
 	public GshhsHeader gshhsHeader;
 
 	public static Map<TileName, TileData> mapScenery;
-	static final int TERRAIN = 0, OBJECTS = 1, MODELS = 2, AIRPORTS = 3, BUILDINGS = 4;
 
 	public static TileName tilenameManager;
 	/** The service getting the tiles */
@@ -45,7 +45,7 @@ public class TerraMaster {
 	public static FGMap fgmap;
 	public static Properties props;
 
-	public static void addScnMapTile(Map<TileName, TileData> map, File i, int type) {
+	public static void addScnMapTile(Map<TileName, TileData> map, File i, TerraSyncDirectoryTypes type) {
 		TileName n = tilenameManager.getTile(i.getName());
 		TileData t = map.get(n);
 		if (t == null) {
@@ -70,7 +70,7 @@ public class TerraMaster {
 	}
 
 	// given a 10x10 dir, add the 1x1 tiles within to the HashMap
-	static void buildScnMap(File dir, Map<TileName, TileData> map, int type) {
+	static void buildScnMap(File dir, Map<TileName, TileData> map, TerraSyncDirectoryTypes type) {
 		File tiles[] = dir.listFiles();
 		Pattern p = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
 
@@ -83,12 +83,12 @@ public class TerraMaster {
 
 	// builds a HashMap of /Terrain and /Objects
 	static Map<TileName, TileData> newScnMap(String path) {
-		String[] types = { "/Terrain", "/Objects" };
+		TerraSyncDirectoryTypes[] types = { TerraSyncDirectoryTypes.TERRAIN, TerraSyncDirectoryTypes.OBJECTS, TerraSyncDirectoryTypes.BUILDINGS };
 		Pattern patt = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
 		Map<TileName, TileData> map = new HashMap<TileName, TileData>(180 * 90);
 
-		for (int i = 0; i < types.length; ++i) {
-			File d = new File(path + types[i]);
+		for (TerraSyncDirectoryTypes terraSyncDirectoryType : types) {
+			File d = new File(path + File.separator + terraSyncDirectoryType.dirname);
 			File list[] = d.listFiles();
 			if (list != null) {
 				// list of 10x10 dirs
@@ -96,7 +96,7 @@ public class TerraMaster {
 					Matcher m = patt.matcher(f.getName());
 					if (m.matches()) {
 						// now look inside this dir
-						buildScnMap(f, map, i);
+						buildScnMap(f, map, terraSyncDirectoryType);
 					}
 				}
 			}
@@ -144,7 +144,7 @@ public class TerraMaster {
 					poly.add(new MapPoly(s, h));
 			} while (n > 0);
 		} catch (Exception e) {
-			LOG.log(Level.SEVERE, filename, e);
+			log.log(Level.SEVERE, filename, e);
 		}
 
 		// System.out.format("%s: %d polys\n", filename, poly.size());
@@ -154,7 +154,7 @@ public class TerraMaster {
 	void createAndShowGUI() {
 		// find our jar
 		java.net.URL url = getClass().getClassLoader().getResource("gshhs_l.b");
-		LOG.fine("getResource: " + url);
+		log.fine("getResource: " + url);
 
 		String path = props.getProperty(TerraMasterProperties.SCENERY_PATH);
 		if (path != null) {
@@ -227,6 +227,7 @@ public class TerraMaster {
 			svn = new HTTPTerraSync();
 			svn.start();
 		}
+		svn.restoreSettings();
 	}
 
 }

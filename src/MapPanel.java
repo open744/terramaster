@@ -396,6 +396,8 @@ class MapPanel extends JPanel {
 			}
 			if (d.objects)
 				txt += " +Obj";
+      if (d.buildings)
+        txt += " +Bui";
 			if (str.length() > 0)
 				txt += "<br>" + str;
 
