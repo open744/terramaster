@@ -90,7 +90,7 @@ public class FGMap {
     str = str.trim();
     String url = String
         .format(
-            "http://mpmap02.flightgear.org/fg_nav_xml_proxy.cgi?sstr=%s&apt_code&apt_name",
+            "http://mpmap02.flightgear.org/fg_nav_xml.cgi?sstr=%s&apt_code&apt_name",
             str);
 
     try {
@@ -111,7 +111,7 @@ public class FGMap {
       String ne = String.format("%d,%d", lat + 1, lon + 1);
       String url = String
           .format(
-              "http://mpmap02.flightgear.org/fg_nav_xml_proxy.cgi?ne=%s&sw=%s&apt_code",
+              "http://mpmap02.flightgear.org/fg_nav_xml.cgi?ne=%s&sw=%s&apt_code",
               ne, sw);
       try {
         result.addAll(webquery(new URL(url)));
