@@ -8,6 +8,8 @@ import java.awt.event.WindowEvent;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -138,6 +140,7 @@ public class MapFrame extends JFrame {
   JFileChooser fc = new JFileChooser();
   JProgressBar progressBar;
   private JPanel panel;
+  Logger log = Logger.getLogger(this.getClass().getName());
 
   public MapFrame(String title) {
     try {
@@ -155,6 +158,7 @@ public class MapFrame extends JFrame {
             TerraMaster.props.store(new FileWriter("terramaster.properties"),
                 null);
           } catch (Exception x) {
+            log.log(Level.WARNING, "Couldn't store settings", e);
           }
         }
       });
@@ -297,7 +301,7 @@ public class MapFrame extends JFrame {
       search.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
 
       searchBar = new JTextField();
-      searchBar.setText("           ");
+      searchBar.setText("");
       GridBagConstraints gbc_searchBar = new GridBagConstraints();
       gbc_searchBar.fill = GridBagConstraints.HORIZONTAL;
       gbc_searchBar.gridwidth = 2;
@@ -326,8 +330,7 @@ public class MapFrame extends JFrame {
 
       map.passFrame(this);
     } catch (Throwable e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      log.log(Level.SEVERE, "Couldn't show MapFrame", e);
     }
 
     /*
@@ -382,7 +385,10 @@ public class MapFrame extends JFrame {
     repaint();
   }
 
-  // called from Svn thread
+  /**
+   * called from Svn thread
+   * @param n
+   */
   public void progressUpdate(int n) {
     progressBar.setValue(progressBar.getValue() + n);
     progressBar.setToolTipText("" + progressBar.getValue() + " / "
