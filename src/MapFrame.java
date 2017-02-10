@@ -361,8 +361,8 @@ public class MapFrame extends JFrame {
 		
 	    map.projectionLatitude = Double.parseDouble(TerraMaster.props.getProperty(TerraMasterProperties.PROJECTION_LAT, "0"));
 	    map.projectionLongitude = Double.parseDouble(TerraMaster.props.getProperty(TerraMasterProperties.PROJECTION_LON, "0"));
+        map.setProjection(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraMasterProperties.PROJECTION, "false")));
 	    map.fromMetres = Double.parseDouble(TerraMaster.props.getProperty(TerraMasterProperties.FROM_METRES, "1"));
-	    map.setProjection(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraMasterProperties.PROJECTION, "false")));
 	    map.setFromMetres();
   }
 
