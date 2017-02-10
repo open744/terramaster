@@ -22,7 +22,7 @@
           target: depends                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="compile">
-		<javac debug="true" includeantruntime="false" srcdir="${basedir}/src" optimize="false" verbose="false" destdir="${basedir}/bin">
+		<javac debug="true" includeantruntime="false" srcdir="${basedir}/src" optimize="false" verbose="false" destdir="${basedir}/ant-bin">
 			<classpath>
 				<fileset dir="LIB">
 					<include name="*.jar" />
@@ -36,7 +36,10 @@
          - - - - - - - - - - - - - - - - - -->
 	<target name="jar">
 		<jar destfile="terramaster.jar" manifest="manifest">
-			<fileset dir="bin">
+			<fileset dir="ant-bin">
+				<include name="**/*" />
+			</fileset>
+			<fileset dir="resources">
 				<include name="**/*" />
 			</fileset>
 			<fileset dir="LIB">
