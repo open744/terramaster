@@ -36,6 +36,7 @@ import javax.swing.border.MatteBorder;
 import java.awt.Color;
 
 import javax.swing.UIManager;
+import javax.swing.SwingConstants;
 
 public class MapFrame extends JFrame {
 
@@ -179,6 +180,7 @@ public class MapFrame extends JFrame {
       panel.setLayout(gbl_panel);
 
       tileName = new JLabel();
+      tileName.setHorizontalAlignment(SwingConstants.CENTER);
       tileName.setText("         ");
       GridBagConstraints gbc_tileName = new GridBagConstraints();
       gbc_tileName.anchor = GridBagConstraints.WEST;
@@ -186,7 +188,7 @@ public class MapFrame extends JFrame {
       gbc_tileName.gridx = 0;
       gbc_tileName.gridy = 0;
       panel.add(tileName, gbc_tileName);
-      tileName.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+      tileName.setFont(new Font("SansSerif", Font.BOLD, 16));
 
       butSync = new JButton(new ImageIcon(getClass().getClassLoader()
           .getResource("Sync.png")));

@@ -190,7 +190,6 @@ public class TerraMaster {
 				LogManager.getLogManager().readConfiguration(resourceAsStream);
 			}
 		} catch (SecurityException | IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		Logger LOG = Logger.getLogger(TerraMaster.class.getName());

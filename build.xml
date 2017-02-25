@@ -22,6 +22,7 @@
           target: depends                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="compile">
+		<mkdir dir="${basedir}/ant-bin"/>
 		<javac debug="true" includeantruntime="false" srcdir="${basedir}/src" optimize="false" verbose="false" destdir="${basedir}/ant-bin">
 			<classpath>
 				<fileset dir="LIB">

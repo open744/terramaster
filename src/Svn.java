@@ -303,8 +303,13 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller,
   }
 
   public void sync(Collection<TileName> set) {
-    synchronized (syncList) {
-      syncList.addAll(set);
+    int res = JOptionPane.showConfirmDialog(TerraMaster.frame,
+        "SVN is deprecated and you won't receive the most recent data." + System.getProperty("line.separator") + "Sync?",
+        "Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+    if (res == JOptionPane.OK_OPTION) {
+      synchronized (syncList) {
+        syncList.addAll(set);
+      }
     }
     synchronized (this) {
       try {
