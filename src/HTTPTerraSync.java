@@ -405,9 +405,9 @@ public class HTTPTerraSync extends Thread implements TileService {
             // We've got a directory if force ignore what we know
             // otherwise check the SHA against
             // the one from the server
-            if (force || !splitLine[2].equals(lookup.get(splitLine[1])))
-              updates += syncDirectory(path + "/" + splitLine[1], force,
-                  models);
+        	String dirname = path + "/" + splitLine[1];
+            if (force || !(new File(dirname).exists()) || !splitLine[2].equals(lookup.get(splitLine[1])))
+              updates += syncDirectory(dirname, force, models);
           } else if (file.startsWith("f:")) {
             // We've got a file
             File localFile = new File(localBaseDir,
