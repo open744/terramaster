@@ -26,4 +26,5 @@ http://mpmap02.flightgear.org
 1. Start the program using the command "java -jar terramaster.jar"
    (double-clicking the terramaster.jar file may also work)
 2. Click the 'Settings' icon to set the path to your FlightGear scenery folder.
-3. User preferences are stored in the file "terramaster.properties".
+3. Select HTTP for the new scenery infrastructure 
+4. User preferences are stored in the file "terramaster.properties".
