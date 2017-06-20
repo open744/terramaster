@@ -45,7 +45,6 @@ public class AboutDialog extends JDialog {
 	}
 
 	private final JTextField txtTerramaster = new JTextField();
-	private JTextField textVersion;
 
 	/**
 	 * Create the application.
@@ -60,13 +59,13 @@ public class AboutDialog extends JDialog {
 	 */
 	private void initialize() {
 		getContentPane().setFont(new Font("Tahoma", Font.PLAIN, 16));
-		setBounds(100, 100, 540, 265);
+		setBounds(100, 100, 477, 265);
 		setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] { 20, 10 };
-		gridBagLayout.rowHeights = new int[] { 0, 0, 134, 37, 0 };
+		gridBagLayout.rowHeights = new int[] { 0, 134, 37, 0 };
 		gridBagLayout.columnWeights = new double[] { 0.0, 1.0 };
-		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 1.0, 0.0, Double.MIN_VALUE };
+		gridBagLayout.rowWeights = new double[] { 0.0, 1.0, 0.0, Double.MIN_VALUE };
 		getContentPane().setLayout(gridBagLayout);
 
 		JPanel panel = new JPanel();
@@ -74,39 +73,23 @@ public class AboutDialog extends JDialog {
 
 		GridBagConstraints gbc_panel = new GridBagConstraints();
 		gbc_panel.anchor = GridBagConstraints.WEST;
-		gbc_panel.gridheight = 4;
-		gbc_panel.insets = new Insets(0, 0, 0, 5);
+		gbc_panel.gridheight = 2;
+		gbc_panel.insets = new Insets(0, 0, 5, 5);
 		gbc_panel.gridx = 0;
 		gbc_panel.gridy = 0;
 		getContentPane().add(panel, gbc_panel);
-
-		JLabel lblNewLabel = new JLabel("");
-		lblNewLabel.setIcon(new ImageIcon("C:\\workspaces\\hochtief\\terramaster2\\resources\\about_icon.png"));
-		panel.add(lblNewLabel);
 		GridBagConstraints gbc_txtTerramaster = new GridBagConstraints();
+		gbc_txtTerramaster.gridwidth = 2;
 		gbc_txtTerramaster.insets = new Insets(0, 0, 5, 0);
-		gbc_txtTerramaster.gridx = 1;
+		gbc_txtTerramaster.gridx = 0;
 		gbc_txtTerramaster.gridy = 0;
 		txtTerramaster.setBorder(null);
 		txtTerramaster.setFont(new Font("Tahoma", Font.PLAIN, 20));
 		txtTerramaster.setHorizontalAlignment(SwingConstants.CENTER);
-		txtTerramaster.setText("Terramaster");
+		txtTerramaster.setText("Terramaster 1.8");
 		txtTerramaster.setEditable(false);
 		getContentPane().add(txtTerramaster, gbc_txtTerramaster);
 		txtTerramaster.setColumns(10);
-
-		textVersion = new JTextField();
-		textVersion.setHorizontalAlignment(SwingConstants.CENTER);
-		textVersion.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		textVersion.setText("1.8");
-		textVersion.setEditable(false);
-		textVersion.setBorder(null);
-		GridBagConstraints gbc_textVersion = new GridBagConstraints();
-		gbc_textVersion.insets = new Insets(0, 0, 5, 0);
-		gbc_textVersion.gridx = 1;
-		gbc_textVersion.gridy = 1;
-		getContentPane().add(textVersion, gbc_textVersion);
-		textVersion.setColumns(10);
 
 		JButton btnNewButton = new JButton("Ok");
 		btnNewButton.addActionListener(new ActionListener() {
@@ -117,9 +100,10 @@ public class AboutDialog extends JDialog {
 
 		JPanel panel_1 = new JPanel();
 		GridBagConstraints gbc_panel_1 = new GridBagConstraints();
+		gbc_panel_1.insets = new Insets(0, 0, 5, 0);
 		gbc_panel_1.fill = GridBagConstraints.BOTH;
 		gbc_panel_1.gridx = 1;
-		gbc_panel_1.gridy = 2;
+		gbc_panel_1.gridy = 1;
 		getContentPane().add(panel_1, gbc_panel_1);
 		GridBagLayout gbl_panel_1 = new GridBagLayout();
 		gbl_panel_1.columnWidths = new int[] { 134, 187, 10 };
@@ -195,9 +179,17 @@ public class AboutDialog extends JDialog {
 		gbc_btnSource.gridx = 1;
 		gbc_btnSource.gridy = 3;
 		panel_1.add(btnSource, gbc_btnSource);
+		
+				JLabel lblNewLabel = new JLabel("");
+				GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
+				gbc_lblNewLabel.insets = new Insets(0, 0, 0, 5);
+				gbc_lblNewLabel.gridx = 0;
+				gbc_lblNewLabel.gridy = 1;
+				getContentPane().add(lblNewLabel, gbc_lblNewLabel);
+				lblNewLabel.setIcon(new ImageIcon("C:\\workspaces\\hochtief\\terramaster2\\resources\\about_icon.png"));
 		GridBagConstraints gbc_btnNewButton = new GridBagConstraints();
 		gbc_btnNewButton.gridx = 1;
-		gbc_btnNewButton.gridy = 3;
+		gbc_btnNewButton.gridy = 2;
 		getContentPane().add(btnNewButton, gbc_btnNewButton);
 	}
 }
