@@ -362,7 +362,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 			log.fine("File downloaded");
 			return outputStream.toByteArray();
 		} else {
-			log.warning("No file to download. Server replied HTTP code: " + responseCode);
+			log.warning("No file to download. Server replied HTTP code: " + responseCode + " for " + fileURL.toExternalForm());
 		}
 		httpConn.disconnect();
 		return "".getBytes();
