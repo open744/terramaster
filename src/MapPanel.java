@@ -7,18 +7,24 @@ import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -30,6 +36,11 @@ import javax.swing.ToolTipManager;
 import com.jhlabs.map.proj.OrthographicAzimuthalProjection;
 import com.jhlabs.map.proj.Projection;
 import com.jhlabs.map.proj.WinkelTripelProjection;
+
+/**
+ * Panel painting the map.
+ *
+ */
 
 class MapPanel extends JPanel {
 
@@ -46,6 +57,33 @@ class MapPanel extends JPanel {
 		} catch (Exception x) {
 			return null;
 		}
+	}
+
+	private final class MapKeyAdapter extends KeyAdapter {
+		private TileName selstart;
+
+		@Override
+		public void keyReleased(KeyEvent e) {
+			if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+				selstart = null;
+			}
+
+		}
+
+		@Override
+		public void keyPressed(KeyEvent e) {
+			if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+				selstart = cursor;
+				selectionSet.clear();
+			} else if (e.isShiftDown()) {
+				keyEvent(e);
+				boxSelection(selstart, cursor);
+				repaint();
+			} else {
+				keyEvent(e);
+			}
+		}
+
 	}
 
 	class SortPoint implements Comparable<SortPoint> {
@@ -68,8 +106,7 @@ class MapPanel extends JPanel {
 
 	class SimpleMouseHandler extends MouseAdapter {
 		public void mouseClicked(MouseEvent e) {
-			TileName t = TerraMaster.tilenameManager.getTile(screen2geo(e
-					.getPoint()));
+			TileName t = TileName.getTile(screen2geo(e.getPoint()));
 			projectionLatitude = Math.toRadians(-t.getLat());
 			projectionLongitude = Math.toRadians(t.getLon());
 			setOrtho();
@@ -93,6 +130,7 @@ class MapPanel extends JPanel {
 		public void mousePressed(MouseEvent e) {
 			press = e.getPoint();
 			mode = e.getButton();
+			requestFocus();
 		}
 
 		public void mouseReleased(MouseEvent e) {
@@ -124,8 +162,8 @@ class MapPanel extends JPanel {
 			if ((e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) == 0)
 				selectionSet.clear();
 
-			int x1 = (int) Math.floor(d1.x), y1 = (int) -Math.ceil(d1.y), x2 = (int) Math
-					.floor(d2.x), y2 = (int) -Math.ceil(d2.y);
+			int x1 = (int) Math.floor(d1.x), y1 = (int) -Math.ceil(d1.y), x2 = (int) Math.floor(d2.x),
+					y2 = (int) -Math.ceil(d2.y);
 			int inc_i = (x2 > x1 ? 1 : -1), inc_j = (y2 > y1 ? 1 : -1);
 
 			// build a list of Points
@@ -134,8 +172,7 @@ class MapPanel extends JPanel {
 			y2 += inc_j;
 			for (int i = x1; i != x2; i += inc_i) {
 				for (int j = y1; j != y2; j += inc_j) {
-					l.add(new SortPoint(new Point(i, j), (i - x1) * (i - x1)
-							+ (j - y1) * (j - y1)));
+					l.add(new SortPoint(new Point(i, j), (i - x1) * (i - x1) + (j - y1) * (j - y1)));
 				}
 			}
 			// sort by distance from x1,y1
@@ -145,7 +182,7 @@ class MapPanel extends JPanel {
 			// finally, add the sorted list to selectionSet
 			for (Object t : arr) {
 				SortPoint p = (SortPoint) t;
-				TileName n = TerraMaster.tilenameManager.getTile(p.p.x, p.p.y);
+				TileName n = TileName.getTile(p.p.x, p.p.y);
 				if (!selectionSet.add(n))
 					selectionSet.remove(n); // remove on reselect
 			}
@@ -191,13 +228,18 @@ class MapPanel extends JPanel {
 		public void mouseClicked(MouseEvent e) {
 			Point2D.Double p2 = screen2geo(e.getPoint());
 
-			TileName tile = TerraMaster.tilenameManager.getTile(p2);
+			TileName tile = TileName.getTile(p2);
+			cursor = tile;
 			String txt = tile.getName();
 			mapFrame.tileName.setText(txt);
 
 			if (p2 == null)
 				return;
 		}
+		
+		/**
+		 * Zoom
+		 */
 
 		public void mouseWheelMoved(MouseWheelEvent e) {
 			int n = e.getWheelRotation();
@@ -231,8 +273,7 @@ class MapPanel extends JPanel {
 	boolean isWinkel = true;
 
 	Projection pj;
-	double projectionLatitude = -Math.toRadians(-30),
-			projectionLongitude = Math.toRadians(145), totalFalseEasting = 0,
+	double projectionLatitude = -Math.toRadians(-30), projectionLongitude = Math.toRadians(145), totalFalseEasting = 0,
 			totalFalseNorthing = 0, // 3e-4,
 			mapRadius = HALFPI;
 	double fromMetres = 1;
@@ -248,6 +289,7 @@ class MapPanel extends JPanel {
 	private Collection<TileName> selectionSet = new LinkedHashSet<TileName>();
 	private int[] dragbox;
 	private BufferedImage offScreen;
+	private TileName cursor;
 
 	public MapPanel() {
 		MPAdapter ad = new MPAdapter();
@@ -265,6 +307,20 @@ class MapPanel extends JPanel {
 		tm.setDismissDelay(999999);
 		tm.setInitialDelay(0);
 		tm.setReshowDelay(0);
+		addKeyListener(new MapKeyAdapter());
+		setFocusable(true);
+		addFocusListener(new FocusListener() {
+
+			@Override
+			public void focusLost(FocusEvent e) {
+//				System.out.println(e);
+			}
+
+			@Override
+			public void focusGained(FocusEvent e) {
+//				System.out.println(e);
+			}
+		});
 	}
 
 	private void setOrtho() {
@@ -338,7 +394,7 @@ class MapPanel extends JPanel {
 			setWinkel();
 	}
 
-	public void setProjection( boolean winkel ) {
+	public void setProjection(boolean winkel) {
 		isWinkel = winkel;
 		if (!isWinkel)
 			setOrtho();
@@ -362,7 +418,7 @@ class MapPanel extends JPanel {
 		String txt = "";
 		String str = "";
 
-		TileName t = TerraMaster.tilenameManager.getTile(screen2geo(s));
+		TileName t = TileName.getTile(screen2geo(s));
 		if (t != null)
 			txt = t.getName();
 
@@ -396,8 +452,8 @@ class MapPanel extends JPanel {
 			}
 			if (d.objects)
 				txt += " +Obj";
-      if (d.buildings)
-        txt += " +Bui";
+			if (d.buildings)
+				txt += " +Bui";
 			if (str.length() > 0)
 				txt += "<br>" + str;
 
@@ -414,8 +470,18 @@ class MapPanel extends JPanel {
 	 * selection stuff
 	 */
 
-	// capture all 1x1 boxes between press and last
-	// (to be drawn by paint() later)
+	private void boxSelection(TileName selstart2, TileName cursor) {
+		Point2D.Double p1 = new Double(selstart2.getLon(), -selstart2.getLat());
+		Double p2 = new Double(cursor.getLon(), -cursor.getLat());
+		boxSelection(p1, p2);
+	}
+
+	/**
+	 *  capture all 1x1 boxes between press and last
+	 *  (to be drawn by paint() later)
+	 * @param p1
+	 * @param p2
+	 */
 	private void boxSelection(Point2D.Double p1, Point2D.Double p2) {
 		if (p1 == null || p2 == null) {
 			// selection = false;
@@ -431,7 +497,12 @@ class MapPanel extends JPanel {
 		selection = true;
 	}
 
-	// returns union of selectionSet + dragbox
+	/**
+	 * returns union of selectionSet + dragbox
+	 * 
+	 * @return
+	 */
+
 	Collection<TileName> getSelection() {
 		Collection<TileName> selSet = new LinkedHashSet<TileName>(selectionSet);
 
@@ -445,7 +516,7 @@ class MapPanel extends JPanel {
 			t += inc_j;
 			for (int i = l; i != r; i += inc_i) {
 				for (int j = b; j != t; j += inc_j) {
-					TileName n = TerraMaster.tilenameManager.getTile(i, j);
+					TileName n = TileName.getTile(i, j);
 					if (!selSet.add(n))
 						selSet.remove(n); // remove on reselect
 				}
@@ -463,6 +534,12 @@ class MapPanel extends JPanel {
 		}
 	}
 
+	/**
+	 * Paints the current selection
+	 * 
+	 * @param g
+	 */
+
 	void showSelection(Graphics g) {
 		Collection<TileName> a = getSelection();
 		if (a == null)
@@ -477,8 +554,8 @@ class MapPanel extends JPanel {
 	}
 
 	void showSyncList(Graphics g) {
-    if(TerraMaster.svn==null)
-      return;	  
+		if (TerraMaster.svn == null)
+			return;
 		Collection<TileName> a = TerraMaster.svn.getSyncList();
 		if (a == null)
 			return;
@@ -535,7 +612,10 @@ class MapPanel extends JPanel {
 		}
 	}
 
-	// w and s are negative
+	/**
+	 * Returns a box that is paintable
+	 *  w and s are negative
+	 */
 	Polygon box1x1(int x, int y) {
 		double l, r, t, b;
 		int x4[] = new int[4], y4[] = new int[4];
@@ -547,8 +627,9 @@ class MapPanel extends JPanel {
 		r = Math.toRadians((double) x + inc);
 		t = Math.toRadians((double) -y - inc);
 
-		if (!inside(l, b))
+		if (!inside(l, b)) {
 			return null;
+		}
 
 		project(l, b, p);
 		x4[0] = (int) p.x;
@@ -564,12 +645,16 @@ class MapPanel extends JPanel {
 		y4[3] = (int) p.y;
 		return new Polygon(x4, y4, 4);
 	}
+	
+	/**
+	 * Shows the downloaded tiles 
+	 * @param g0
+	 */
 
 	void showTiles(Graphics g0) {
 		Graphics2D g = (Graphics2D) g0;
-		Color color, bg = new Color(0, 0, 0, 0), grey = new Color(128, 128,
-				128, 224), green = new Color(64, 224, 0, 128), amber = new Color(
-				192, 192, 0, 128);
+		Color color, bg = new Color(0, 0, 0, 0), grey = new Color(128, 128, 128, 224),
+				green = new Color(64, 224, 0, 128), amber = new Color(192, 192, 0, 128);
 
 		g.setBackground(bg);
 		// g.clearRect(0, 0, 1600, 800);
@@ -579,11 +664,10 @@ class MapPanel extends JPanel {
 		g.setColor(Color.gray);
 		drawGraticule(g, 10);
 
-		if(TerraMaster.mapScenery==null)
-		 return;
+		if (TerraMaster.mapScenery == null)
+			return;
 		Set<TileName> keys = TerraMaster.mapScenery.keySet();
-		Pattern p = Pattern
-				.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
+		Pattern p = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
 
 		for (TileName n : keys) {
 			if (n == null)
@@ -613,8 +697,8 @@ class MapPanel extends JPanel {
 	}
 
 	void showAirports(Graphics g0) {
-	  if(TerraMaster.fgmap==null)	
-	    return;
+		if (TerraMaster.fgmap == null)
+			return;
 		Graphics2D g = (Graphics2D) g0.create();
 		HashMap<String, Airport> apts = TerraMaster.fgmap.getAirportList();
 		Point2D.Double p = new Point2D.Double();
@@ -689,12 +773,14 @@ class MapPanel extends JPanel {
 		}
 	}
 
-	// draws the landmass
-	// filter by polygon size and zoom
+	/**
+	 * draws the landmass.
+	 * filter by polygon size and zoom
+	 * @param g
+	 */
 	void showLandmass(Graphics g) {
 		Graphics2D g2 = (Graphics2D) g;
-		Color sea = new Color(0, 0, 64), land = new Color(64, 128, 0), border = new Color(
-				128, 192, 128);
+		Color sea = new Color(0, 0, 64), land = new Color(64, 128, 0), border = new Color(128, 192, 128);
 		Rectangle r = g2.getClipBounds();
 
 		g2.setColor(land);
@@ -764,18 +850,15 @@ class MapPanel extends JPanel {
 		return j;
 	}
 
-	double greatCircleDistance(double lon1, double lat1, double lon2,
-			double lat2) {
+	double greatCircleDistance(double lon1, double lat1, double lon2, double lat2) {
 		double dlat = Math.sin((lat2 - lat1) / 2);
 		double dlon = Math.sin((lon2 - lon1) / 2);
-		double r = Math.sqrt(dlat * dlat + Math.cos(lat1) * Math.cos(lat2)
-				* dlon * dlon);
+		double r = Math.sqrt(dlat * dlat + Math.cos(lat1) * Math.cos(lat2) * dlon * dlon);
 		return 2.0 * Math.asin(r);
 	}
 
 	boolean inside(double lon, double lat) {
-		return greatCircleDistance(lon, lat, projectionLongitude,
-				projectionLatitude) < mapRadius;
+		return greatCircleDistance(lon, lat, projectionLongitude, projectionLatitude) < mapRadius;
 	}
 
 	void project(double lam, double phi, Point2D.Double d) {
@@ -813,10 +896,8 @@ class MapPanel extends JPanel {
 			Graphics2D g2 = (Graphics2D) graphics;
 			g2.setTransform(new AffineTransform());
 			g2.setColor(Color.white);
-			g2.drawLine(getWidth() / 2 - 50, getHeight() / 2,
-					getWidth() / 2 + 50, getHeight() / 2);
-			g2.drawLine(getWidth() / 2, getHeight() / 2 - 50, getWidth() / 2,
-					getHeight() / 2 + 50);
+			g2.drawLine(getWidth() / 2 - 50, getHeight() / 2, getWidth() / 2 + 50, getHeight() / 2);
+			g2.drawLine(getWidth() / 2, getHeight() / 2 - 50, getWidth() / 2, getHeight() / 2 + 50);
 		}
 		// Draw double buffered Image
 		g.drawImage(offScreen, 0, 0, this);
@@ -825,8 +906,7 @@ class MapPanel extends JPanel {
 	@Override
 	public void setSize(int width, int height) {
 		super.setSize(width, height);
-		offScreen = new BufferedImage(width, height,
-				BufferedImage.TYPE_INT_ARGB);
+		offScreen = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		offScreen.getGraphics().setClip(0, 0, width, height);
 	}
 
@@ -835,5 +915,45 @@ class MapPanel extends JPanel {
 		pj.initialize();
 		// repaint(new Rectangle(0, 0, getWidth(), getHeight()));
 		mapFrame.repaint();
+	}
+
+	public void keyEvent(KeyEvent e) {
+		if (cursor == null)
+			return;
+		TileName newSelection = null;
+		switch (e.getKeyCode()) {
+		case KeyEvent.VK_LEFT:
+			newSelection = cursor.getNeighbour(-1, 0);
+			break;
+		case KeyEvent.VK_RIGHT:
+			newSelection = cursor.getNeighbour(1, 0);
+			break;
+		case KeyEvent.VK_UP:
+			newSelection = cursor.getNeighbour(0, 1);
+			break;
+		case KeyEvent.VK_DOWN:
+			newSelection = cursor.getNeighbour(0, -1);
+			break;
+		case KeyEvent.VK_PLUS:
+			fromMetres += 1;
+			setFromMetres();
+			return;
+		case KeyEvent.VK_MINUS:
+			fromMetres -= 1;
+			setFromMetres();
+			return;
+		default:
+			break;
+		}
+		if (newSelection != null) {
+			if (!e.isShiftDown()) {
+				dragbox = null;
+				selectionSet.clear();
+				selectionSet.add(newSelection);
+			}
+			cursor = newSelection;
+		}
+		repaint();
+
 	}
 }
