@@ -2,14 +2,22 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -17,20 +25,30 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
-import javax.swing.JCheckBox;
-import java.awt.GridLayout;
-import javax.swing.AbstractAction;
-import javax.swing.Action;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeEvent;
 
 public class SettingsDialog extends JDialog {
-
+	Logger log = Logger.getLogger(getClass().getName());
 	private final JPanel contentPanel = new JPanel();
 	private JTextField txtScenerypath;
 	private JComboBox cmbScenerySource;
 	private final Action action = new SwingAction();
-  private JCheckBox chckbxTerrain;
-  private JCheckBox chckbxObjects;
-  private JCheckBox chckbxBuildings;
+	private JCheckBox chckbxTerrain;
+	private JCheckBox chckbxObjects;
+	private JCheckBox chckbxBuildings;
+	private Vector<Level> levels = new Vector<Level>();
+	private JComboBox<Level> cmbLogLevel;
+	private Logger root;
+
+	{
+		levels.addElement(Level.ALL);
+		levels.addElement(Level.FINEST);
+		levels.addElement(Level.FINER);
+		levels.addElement(Level.INFO);
+		levels.addElement(Level.WARNING);
+		levels.addElement(Level.SEVERE);
+	}
 
 	/**
 	 * Create the dialog.
@@ -43,11 +61,10 @@ public class SettingsDialog extends JDialog {
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		getContentPane().add(contentPanel, BorderLayout.CENTER);
 		GridBagLayout gbl_contentPanel = new GridBagLayout();
-		gbl_contentPanel.columnWidths = new int[] {0, 0, 40, 0};
-		gbl_contentPanel.rowHeights = new int[] {0, 0, 22};
-		gbl_contentPanel.columnWeights = new double[] { 0.0, 1.0, 1.0,
-				Double.MIN_VALUE };
-		gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, 0.0 };
+		gbl_contentPanel.columnWidths = new int[] { 0, 0, 40, 0 };
+		gbl_contentPanel.rowHeights = new int[] { 0, 0, 22, 0 };
+		gbl_contentPanel.columnWeights = new double[] { 0.0, 1.0, 1.0, Double.MIN_VALUE };
+		gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
 		contentPanel.setLayout(gbl_contentPanel);
 		{
 			{
@@ -113,19 +130,23 @@ public class SettingsDialog extends JDialog {
 						try {
 							TerraMaster.mapScenery = TerraMaster.newScnMap(txtScenerypath.getText());
 							TerraMaster.frame.map.repaint();
-							TerraMaster.props.setProperty(TerraMasterProperties.SCENERY_PATH,
-									txtScenerypath.getText());
-							TerraMaster.props.setProperty(TerraMasterProperties.SERVER_TYPE, (String) cmbScenerySource.getSelectedItem());
+							TerraMaster.props.setProperty(TerraMasterProperties.SCENERY_PATH, txtScenerypath.getText());
+							TerraMaster.props.setProperty(TerraMasterProperties.SERVER_TYPE,
+									(String) cmbScenerySource.getSelectedItem());
 							TerraMaster.setTileService();
 							TerraMaster.svn.setScnPath(new File(txtScenerypath.getText()));
-							TerraMaster.svn.setTypes(chckbxTerrain.isSelected(), chckbxObjects.isSelected(), chckbxBuildings.isSelected());
-							TerraMaster.props.setProperty(TerraSyncDirectoryTypes.TERRAIN.name(), Boolean.toString(chckbxTerrain.isSelected())); 
-              TerraMaster.props.setProperty(TerraSyncDirectoryTypes.OBJECTS.name(), Boolean.toString(chckbxObjects.isSelected())); 
-              TerraMaster.props.setProperty(TerraSyncDirectoryTypes.BUILDINGS.name(), Boolean.toString(chckbxBuildings.isSelected())); 
+							TerraMaster.svn.setTypes(chckbxTerrain.isSelected(), chckbxObjects.isSelected(),
+									chckbxBuildings.isSelected());
+							TerraMaster.props.setProperty(TerraSyncDirectoryTypes.TERRAIN.name(),
+									Boolean.toString(chckbxTerrain.isSelected()));
+							TerraMaster.props.setProperty(TerraSyncDirectoryTypes.OBJECTS.name(),
+									Boolean.toString(chckbxObjects.isSelected()));
+							TerraMaster.props.setProperty(TerraSyncDirectoryTypes.BUILDINGS.name(),
+									Boolean.toString(chckbxBuildings.isSelected()));
 						} catch (Exception x) {
 							x.printStackTrace();
 						}
-						
+
 					}
 				});
 				okButton.setActionCommand("OK");
@@ -146,8 +167,7 @@ public class SettingsDialog extends JDialog {
 		{
 			{
 				cmbScenerySource = new JComboBox();
-				cmbScenerySource.setModel(new DefaultComboBoxModel(new String[] {
-						"Terrasync (SVN)", "HTTP" }));
+				cmbScenerySource.setModel(new DefaultComboBoxModel(new String[] { "Terrasync (SVN)", "HTTP" }));
 				cmbScenerySource.setSelectedItem(TerraMaster.props.getProperty(TerraMasterProperties.SERVER_TYPE));
 				GridBagConstraints gbc_comboBox = new GridBagConstraints();
 				gbc_comboBox.insets = new Insets(0, 0, 5, 5);
@@ -160,7 +180,7 @@ public class SettingsDialog extends JDialog {
 		JButton addSettingsButton = new JButton("...");
 		addSettingsButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
+
 			}
 		});
 		GridBagConstraints gbc_addSettingsButton = new GridBagConstraints();
@@ -188,29 +208,84 @@ public class SettingsDialog extends JDialog {
 			{
 				chckbxTerrain = new JCheckBox("Terrain");
 				panel.add(chckbxTerrain);
-				chckbxTerrain.setSelected(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.TERRAIN.name(), "false")));
+				chckbxTerrain.setSelected(Boolean
+						.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.TERRAIN.name(), "false")));
 			}
 			{
 				chckbxObjects = new JCheckBox("Objects");
 				panel.add(chckbxObjects);
-				chckbxObjects.setSelected(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.OBJECTS.name(), "false")));
+				chckbxObjects.setSelected(Boolean
+						.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.OBJECTS.name(), "false")));
 			}
 			{
 				chckbxBuildings = new JCheckBox("Buildings");
 				panel.add(chckbxBuildings);
-				chckbxBuildings.setSelected(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.BUILDINGS.name(), "false")));
+				chckbxBuildings.setSelected(Boolean.parseBoolean(
+						TerraMaster.props.getProperty(TerraSyncDirectoryTypes.BUILDINGS.name(), "false")));
 			}
 		}
+		{
+			JLabel lblLogLevel = new JLabel("Log Level");
+			GridBagConstraints gbc_lblLogLevel = new GridBagConstraints();
+			gbc_lblLogLevel.anchor = GridBagConstraints.EAST;
+			gbc_lblLogLevel.insets = new Insets(0, 0, 0, 5);
+			gbc_lblLogLevel.gridx = 0;
+			gbc_lblLogLevel.gridy = 3;
+			contentPanel.add(lblLogLevel, gbc_lblLogLevel);
+		}
+		{
+			cmbLogLevel = new JComboBox<Level>();
+			cmbLogLevel.addPropertyChangeListener(new PropertyChangeListener() {
+				public void propertyChange(PropertyChangeEvent evt) {
+					if(root != null)
+					  root.setLevel(cmbLogLevel.getItemAt(cmbLogLevel.getSelectedIndex()));
+				}
+			});
+			cmbLogLevel.addActionListener(new ActionListener() {
+				
+				public void actionPerformed(ActionEvent e) {
+					Level newLevell = cmbLogLevel.getItemAt(cmbLogLevel.getSelectedIndex());
+					root.setLevel(newLevell);
+					LogManager manager = LogManager.getLogManager();
+					Enumeration<String> loggers = manager.getLoggerNames();
+					while (loggers.hasMoreElements()) {
+						String logger = (String) loggers.nextElement();
+						Logger logger2 = manager.getLogger(logger);
+						if(logger2.getLevel()!=null)
+						{
+							logger2.setLevel(newLevell);
+						}
+					}
+				}
+			});
+			cmbLogLevel.setModel(new DefaultComboBoxModel(levels));
+			GridBagConstraints gbc_cmbLogLevel = new GridBagConstraints();
+			gbc_cmbLogLevel.insets = new Insets(0, 0, 0, 5);
+			gbc_cmbLogLevel.fill = GridBagConstraints.HORIZONTAL;
+			gbc_cmbLogLevel.gridx = 1;
+			gbc_cmbLogLevel.gridy = 3;
+			contentPanel.add(cmbLogLevel, gbc_cmbLogLevel);
+		}
+		restoreValues();
 	}
 
-private class SwingAction extends AbstractAction {
-    public SwingAction() {
-      putValue(NAME, "Terrain");
-      putValue(SHORT_DESCRIPTION, "Some short description");
-    }
-    public void actionPerformed(ActionEvent e) {
-      if(chckbxObjects.isSelected())
-        chckbxTerrain.setSelected(true);
-    }
-  }
+	private void restoreValues() {
+		root = log;
+		while (root.getParent() != null)
+			root = root.getParent();
+
+		cmbLogLevel.setSelectedItem(root.getLevel());
+	}
+
+	private class SwingAction extends AbstractAction {
+		public SwingAction() {
+			putValue(NAME, "Terrain");
+			putValue(SHORT_DESCRIPTION, "Some short description");
+		}
+
+		public void actionPerformed(ActionEvent e) {
+			if (chckbxObjects.isSelected())
+				chckbxTerrain.setSelected(true);
+		}
+	}
 }
