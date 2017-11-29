@@ -20,6 +20,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -198,7 +199,7 @@ public class TerraMaster {
 	}
 
 	public static void main(String args[]) {
-
+		Properties p = new Properties();
 		try {
 			InputStream resourceAsStream = TerraMaster.class.getResourceAsStream("/terramaster.logging.properties");
 			if (resourceAsStream != null) {
@@ -208,6 +209,13 @@ public class TerraMaster {
 			e1.printStackTrace();
 		}
 		Logger LOG = Logger.getLogger(TerraMaster.class.getCanonicalName());
+		try {
+			InputStream resourceAsStream = TerraMaster.class.getResourceAsStream("/build.number");
+			if (resourceAsStream != null)
+				p.load(resourceAsStream);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
 		// Logger.getGlobal().setLevel(Level.ALL);
 
 		fgmap = new FGMap(); // handles webqueries
@@ -221,7 +229,7 @@ public class TerraMaster {
 		} catch (IOException e) {
 			LOG.log(Level.WARNING, "Couldn't load properties : " + e.toString(), e);
 		}
-		LOG.info("Starting TerraMaster");
+		LOG.info("Starting TerraMaster " + p.getProperty("build.number"));
 
 		setTileService();
 
@@ -230,6 +238,21 @@ public class TerraMaster {
 				new TerraMaster().createAndShowGUI();
 			}
 		});
+		if (props.getProperty("LogLevel") != null) {
+
+			Level newLevel = Level.parse(props.getProperty("LogLevel"));
+			LOG.getParent().setLevel(newLevel);
+			LogManager manager = LogManager.getLogManager();
+			Enumeration<String> loggers = manager.getLoggerNames();
+			while (loggers.hasMoreElements()) {
+				String logger = (String) loggers.nextElement();
+				Logger logger2 = manager.getLogger(logger);
+				if (logger2 != null && logger2.getLevel() != null) {
+					logger2.setLevel(newLevel);
+				}
+			}
+
+		}
 
 	}
 

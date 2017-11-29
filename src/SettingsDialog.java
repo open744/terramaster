@@ -251,7 +251,7 @@ public class SettingsDialog extends JDialog {
 					while (loggers.hasMoreElements()) {
 						String logger = (String) loggers.nextElement();
 						Logger logger2 = manager.getLogger(logger);
-						if(logger2.getLevel()!=null)
+						if(logger2 !=null && logger2.getLevel()!=null)
 						{
 							logger2.setLevel(newLevell);
 						}

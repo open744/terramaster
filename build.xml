@@ -22,7 +22,13 @@
           target: depends                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="compile">
+		<buildnumber/>				
 		<mkdir dir="${basedir}/ant-bin"/>
+		<copy todir="${basedir}/ant-bin">
+			<fileset dir="${basedir}">
+				<include name="build.number"/>				
+			</fileset>
+		</copy>
 		<javac debug="true" includeantruntime="false" srcdir="${basedir}/src" optimize="false" verbose="false" destdir="${basedir}/ant-bin">
 			<classpath>
 				<fileset dir="LIB">

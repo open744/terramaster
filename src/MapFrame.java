@@ -30,6 +30,7 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.MatteBorder;
+import java.awt.Toolkit;
 
 public class MapFrame extends JFrame {
 
@@ -138,6 +139,7 @@ public class MapFrame extends JFrame {
   private JButton butInfo;
 
   public MapFrame(String title) {
+  	setIconImage(Toolkit.getDefaultToolkit().getImage("TerraMaster logo cropped.ico"));
     try {
       MFAdapter ad = new MFAdapter();
 
