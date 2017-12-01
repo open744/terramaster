@@ -9,10 +9,10 @@ public class TileName implements Comparable<TileName> {
 	private int lat, lon;
 	private String name;
 
-	private Hashtable<String, TileName> tilenameMap;
-
+	private static Hashtable<String, TileName> tilenameMap;
+	
 	// creates a hashtable of all possible 1x1 tiles in the world
-	public TileName() {
+	static{
 		tilenameMap = new Hashtable<String, TileName>();
 
 		for (int x = -180; x < 180; ++x) {
@@ -20,7 +20,7 @@ public class TileName implements Comparable<TileName> {
 				TileName t = new TileName(y, x);
 				tilenameMap.put(t.getName(), t);
 			}
-		}
+		}		
 	}
 
 	public TileName(int lat, int lon) {
@@ -60,14 +60,14 @@ public class TileName implements Comparable<TileName> {
 	}
 
 	// W and S are negative
-	public String computeTileName(Point2D.Double p) {
+	public static String computeTileName(Point2D.Double p) {
 		if (p == null)
 			return "";
 		return computeTileName((int) -Math.ceil(p.y), (int) Math.floor(p.x));
 	}
 
 	// W and S are negative
-	public String computeTileName(int lat, int lon) {
+	public static String computeTileName(int lat, int lon) {
 		char ew = 'e', ns = 'n';
 
 		if (lon < 0) {
@@ -92,15 +92,15 @@ public class TileName implements Comparable<TileName> {
 		return null;
 	}
 
-	public TileName getTile(String n) {
+	public static TileName getTile(String n) {
 		return tilenameMap.get(n);
 	}
 
-	public TileName getTile(int x, int y) {
+	public static TileName getTile(int x, int y) {
 		return tilenameMap.get(computeTileName(y, x));
 	}
 
-	public TileName getTile(Point2D.Double p) {
+	public static TileName getTile(Point2D.Double p) {
 		return tilenameMap.get(computeTileName(p));
 	}
 
@@ -127,5 +127,15 @@ public class TileName implements Comparable<TileName> {
 		lat -= ns == 's' && modlat != 0 ? modlat - 10 : modlat;
 
 		return String.format("%s%03d%s%02d/%s", ew, lon, ns, lat, name);
+	}
+
+	public TileName getNeighbour(int i, int j) {		
+		TileName tile = TileName.getTile(lon + i, lat + j);
+		return tile;
+	}
+	
+	@Override
+	public String toString() {
+		return getName();
 	}
 }

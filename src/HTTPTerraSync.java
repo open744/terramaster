@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -32,9 +33,6 @@ import de.terramaster.dns.WeightedUrl;
  */
 
 public class HTTPTerraSync extends Thread implements TileService {
-	
-	
-
 	Logger log = Logger.getLogger(this.getClass().getName());
 
 	private static final int RESET = 1;
@@ -50,7 +48,6 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	public HTTPTerraSync() {
 		super("HTTPTerraSync");
-
 	}
 
 	@Override
@@ -60,6 +57,10 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	@Override
 	public void sync(Collection<TileName> set) {
+		for (Iterator iterator = set.iterator(); iterator.hasNext();) {
+			TileName tileName = (TileName) iterator.next();
+			log.finest("Added " + tileName.getName() + " to queue");
+		}
 		synchronized (syncList) {
 			syncList.addAll(set);
 			cancelFlag = false;
@@ -81,8 +82,22 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	@Override
 	public void quit() {
-		// TODO Auto-generated method stub
-
+		cancelFlag = true;
+		synchronized (syncList) {
+			syncList.clear();
+		}
+		(new Thread() {
+			@Override
+			public void run() {
+				try {
+					if (httpConn != null && httpConn.getInputStream() != null) {
+						httpConn.getInputStream().close();
+					}
+				} catch (IOException e) {
+					// Expecting to throw error
+				}
+			}
+		}).start();
 	}
 
 	@Override
@@ -147,57 +162,65 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	@Override
 	public void run() {
-		while (noquit) {
-			synchronized (this) {
-				try {
-					wait();
-				} catch (InterruptedException e) {
+		try {
+			while (noquit) {
+				synchronized (this) {
+					try {
+						wait();
+					} catch (InterruptedException e) {
+					}
 				}
-			}
-			HashSet<String> apt = new HashSet<String>();
-			// update progressbar
-			invokeLater(EXTEND, syncList.size() * 400 + 3000); // update
-			while (syncList.size() > 0) {
-				urls = new FlightgearNAPTRQuery().queryDNSServer("ws20");
-				final TileName n;
-				synchronized (syncList) {
-					n = syncList.getFirst();
+				HashSet<String> apt = new HashSet<String>();
+				// update progressbar
+				invokeLater(EXTEND, syncList.size() * 400 + 3000); // update
+				while (syncList.size() > 0) {
+					urls = new FlightgearNAPTRQuery().queryDNSServer("ws20");
+					final TileName n;
+					synchronized (syncList) {
+						if (syncList.size() == 0)
+							continue;
+						n = syncList.getFirst();
+					}
+
+					String name = n.getName();
+					if (name.startsWith("MODELS")) {
+						int i = name.indexOf('-');
+						if (i > -1)
+							syncDirectory(name.substring(i + 1), false, TerraSyncDirectoryTypes.MODELS);
+						else
+							syncModels();
+					} else {
+						// Updating Terrain/Objects
+						String path = n.buildPath();
+						if (path != null)
+							try {
+								HashSet<String> apt2 = syncTile(path);
+								apt.addAll(apt2);
+							} catch (IOException e) {
+								log.log(Level.WARNING, "Couldn't sync tile " + path, e);
+							}
+					}
+
+					synchronized (syncList) {
+						syncList.remove(n);
+					}
+				}
+				if (apt != null) {
+					try {
+						syncAirports(apt.toArray(new String[0]));
+					} catch (IOException e) {
+						log.log(Level.WARNING, "Couldn't get airports ", e);
+					}
 				}
 
-				String name = n.getName();
-				if (name.startsWith("MODELS")) {
-					int i = name.indexOf('-');
-					if (i > -1)
-						syncDirectory(name.substring(i + 1), false, TerraSyncDirectoryTypes.MODELS);
-					else
-						syncModels();
-				} else {
-					// Updating Terrain/Objects
-					String path = n.buildPath();
-					if (path != null)
-						try {
-							HashSet<String> apt2 = syncTile(path);
-							apt.addAll(apt2);
-						} catch (IOException e) {
-							log.log(Level.WARNING, "Couldn't sync tile " + path, e);
-						}
-				}
-
-				synchronized (syncList) {
-					syncList.remove(n);
-				}
+				// syncList is now empty
+				invokeLater(RESET, 0); // reset progressBar
 			}
-			if (apt != null) {
-				try {
-					syncAirports(apt.toArray(new String[0]));
-				} catch (IOException e) {
-					log.log(Level.WARNING, "Couldn't get airports ", e);
-				}
-			}
-
-			// syncList is now empty
-			invokeLater(RESET, 0); // reset progressBar
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "HTTP Crashed ", e);
+			e.printStackTrace();
 		}
+		log.fine("HTTP TerraSync ended");
 	}
 
 	/**
@@ -209,6 +232,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	private HashSet<String> syncTile(String path) throws IOException {
 		try {
+			log.fine("Syncing " + path);
 			if (terrain) {
 				int updates = syncDirectory(TerraSyncDirectoryTypes.TERRAIN.dirname + path, false,
 						TerraSyncDirectoryTypes.TERRAIN);
@@ -277,9 +301,10 @@ public class HTTPTerraSync extends Thread implements TileService {
 			invokeLater(UPDATE, 100 - updates);
 		}
 	}
-	
+
 	/**
-	 * Get a weighted random URL 
+	 * Get a weighted random URL
+	 * 
 	 * @return
 	 */
 
@@ -287,24 +312,21 @@ public class HTTPTerraSync extends Thread implements TileService {
 		if (urls.size() == 0) {
 			log.warning("No URLs to sync with");
 		}
-		
+
 		// Compute the total weight of all items together
 		double totalWeight = 0.0d;
-		for (WeightedUrl i : urls)
-		{
-		    totalWeight += i.getWeight();
+		for (WeightedUrl i : urls) {
+			totalWeight += i.getWeight();
 		}
 		// Now choose a random item
 		int randomIndex = -1;
 		double random = Math.random() * totalWeight;
-		for (int i = 0; i < urls.size(); ++i)
-		{
-		    random -= urls.get(i).getWeight();
-		    if (random <= 0.0d)
-		    {
-		        randomIndex = i;
-		        break;
-		    }
+		for (int i = 0; i < urls.size(); ++i) {
+			random -= urls.get(i).getWeight();
+			if (random <= 0.0d) {
+				randomIndex = i;
+				break;
+			}
 		}
 		return urls.get(randomIndex).getUrl();
 	}
@@ -362,7 +384,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 			log.fine("File downloaded");
 			return outputStream.toByteArray();
 		} else {
-			log.warning("No file to download. Server replied HTTP code: " + responseCode);
+			log.warning("No file to download. Server replied HTTP code: " + responseCode + " for "
+					+ fileURL.toExternalForm());
 		}
 		httpConn.disconnect();
 		return "".getBytes();
@@ -396,8 +419,9 @@ public class HTTPTerraSync extends Thread implements TileService {
 				int updates = 0;
 				if (cancelFlag)
 					return updates;
-				URL fileURL = new URL(baseUrl.toExternalForm() + path.replace("\\", "/") + "/.dirindex");
-				String remoteDirIndex = new String(getFile(fileURL));
+				URL dirIndexFileURL = new URL(baseUrl.toExternalForm() + path.replace("\\", "/") + "/.dirindex");
+				log.finest(dirIndexFileURL.toExternalForm());
+				String remoteDirIndex = new String(getFile(dirIndexFileURL));
 				String localDirIndex = readDirIndex(path);
 				String[] lines = remoteDirIndex.split("\r?\n");
 				String[] localLines = localDirIndex.split("\r?\n");
@@ -423,6 +447,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 					} else if (file.startsWith("f:")) {
 						// We've got a file
 						File localFile = new File(localBaseDir, path + File.separator + splitLine[1]);
+						log.finest(localFile.getAbsolutePath());
 						boolean load = true;
 						if (localFile.exists()) {
 							log.finest(localFile.getAbsolutePath());
@@ -436,8 +461,10 @@ public class HTTPTerraSync extends Thread implements TileService {
 							}
 						}
 						if (load) {
-							byte[] fileContent = getFile(
-									new URL(baseUrl.toExternalForm() + path.replace("\\", "/") + "/" + splitLine[1]));
+							URL fileURL = new URL(
+									baseUrl.toExternalForm() + path.replace("\\", "/") + "/" + splitLine[1]);
+							byte[] fileContent = getFile(fileURL);
+							log.finest(fileURL.toExternalForm());
 							FileOutputStream fos = new FileOutputStream(localFile);
 							fos.write(fileContent);
 							fos.flush();
@@ -486,7 +513,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	private boolean buildings;
 
-	public String bytesToHex(byte[] bytes) {
+	private String bytesToHex(byte[] bytes) {
 		char[] hexChars = new char[bytes.length * 2];
 		for (int j = 0; j < bytes.length; j++) {
 			int v = bytes[j] & 0xFF;

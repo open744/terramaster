@@ -76,7 +76,6 @@ public class FlightgearNAPTRQuery {
 		List<String> nameservers = config.nameservers();
 		// Add google
 		nameservers.add(0, "8.8.8.8");
-		nameservers.add(0, "192.168.239.3");
 		
 		for (String serverName : nameservers) {
 			try {

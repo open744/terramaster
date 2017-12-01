@@ -10,13 +10,17 @@
 // 3. keyboard actions
 // 4. double-click for priority sync
 
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -39,14 +43,13 @@ public class TerraMaster {
 
 	public static Map<TileName, TileData> mapScenery;
 
-	public static TileName tilenameManager;
 	/** The service getting the tiles */
 	public static TileService svn;
 	public static FGMap fgmap;
 	public static Properties props;
 
 	public static void addScnMapTile(Map<TileName, TileData> map, File i, TerraSyncDirectoryTypes type) {
-		TileName n = tilenameManager.getTile(i.getName());
+		TileName n = TileName.getTile(i.getName());
 		TileData t = map.get(n);
 		if (t == null) {
 			// make a new TileData
@@ -61,10 +64,10 @@ public class TerraMaster {
 			t.objects = true;
 			t.dir_obj = i;
 			break;
-    case BUILDINGS:
-      t.buildings = true;
-      t.dir_buildings = i;
-      break;
+		case BUILDINGS:
+			t.buildings = true;
+			t.dir_buildings = i;
+			break;
 		}
 		map.put(n, t);
 	}
@@ -83,7 +86,8 @@ public class TerraMaster {
 
 	// builds a HashMap of /Terrain and /Objects
 	static Map<TileName, TileData> newScnMap(String path) {
-		TerraSyncDirectoryTypes[] types = { TerraSyncDirectoryTypes.TERRAIN, TerraSyncDirectoryTypes.OBJECTS, TerraSyncDirectoryTypes.BUILDINGS };
+		TerraSyncDirectoryTypes[] types = { TerraSyncDirectoryTypes.TERRAIN, TerraSyncDirectoryTypes.OBJECTS,
+				TerraSyncDirectoryTypes.BUILDINGS };
 		Pattern patt = Pattern.compile("([ew])(\\p{Digit}{3})([ns])(\\p{Digit}{2})");
 		Map<TileName, TileData> map = new HashMap<TileName, TileData>(180 * 90);
 
@@ -180,10 +184,22 @@ public class TerraMaster {
 		borders = newPolyList("wdb_borders_l.b");
 		frame.passPolys(polys);
 		frame.passBorders(borders);
+		frame.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				svn.quit();
+				frame.storeSettings();
+				props.setProperty("LogLevel", log.getParent().getLevel().getName());
+				try {
+					props.store(new FileWriter("terramaster.properties"), null);
+				} catch (Exception x) {
+					log.log(Level.WARNING, "Couldn't store settings", e);
+				}
+			}
+		});
 	}
 
 	public static void main(String args[]) {
-
+		Properties p = new Properties();
 		try {
 			InputStream resourceAsStream = TerraMaster.class.getResourceAsStream("/terramaster.logging.properties");
 			if (resourceAsStream != null) {
@@ -192,28 +208,51 @@ public class TerraMaster {
 		} catch (SecurityException | IOException e1) {
 			e1.printStackTrace();
 		}
-		Logger LOG = Logger.getLogger(TerraMaster.class.getName());
+		Logger LOG = Logger.getLogger(TerraMaster.class.getCanonicalName());
+		try {
+			InputStream resourceAsStream = TerraMaster.class.getResourceAsStream("/build.number");
+			if (resourceAsStream != null)
+				p.load(resourceAsStream);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
 		// Logger.getGlobal().setLevel(Level.ALL);
-
-		tilenameManager = new TileName();
 
 		fgmap = new FGMap(); // handles webqueries
 
 		props = new Properties();
 		try {
 			props.load(new FileReader("terramaster.properties"));
+			if (props.getProperty("LogLevel") != null) {
+				LOG.getParent().setLevel(Level.parse(props.getProperty("LogLevel")));
+			}
 		} catch (IOException e) {
 			LOG.log(Level.WARNING, "Couldn't load properties : " + e.toString(), e);
 		}
-		LOG.info("Starting TerraMaster");
+		LOG.info("Starting TerraMaster " + p.getProperty("build.number"));
 
 		setTileService();
-		
+
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				new TerraMaster().createAndShowGUI();
 			}
 		});
+		if (props.getProperty("LogLevel") != null) {
+
+			Level newLevel = Level.parse(props.getProperty("LogLevel"));
+			LOG.getParent().setLevel(newLevel);
+			LogManager manager = LogManager.getLogManager();
+			Enumeration<String> loggers = manager.getLoggerNames();
+			while (loggers.hasMoreElements()) {
+				String logger = (String) loggers.nextElement();
+				Logger logger2 = manager.getLogger(logger);
+				if (logger2 != null && logger2.getLevel() != null) {
+					logger2.setLevel(newLevel);
+				}
+			}
+
+		}
 
 	}
 

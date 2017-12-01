@@ -1,11 +1,15 @@
+import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.io.FileWriter;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -20,23 +24,13 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
-
-import java.awt.BorderLayout;
-
-import javax.swing.JPanel;
-
-import java.awt.GridBagLayout;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
-
-import javax.swing.border.MatteBorder;
-
-import java.awt.Color;
-
-import javax.swing.UIManager;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
+import javax.swing.border.MatteBorder;
+import java.awt.Toolkit;
 
 public class MapFrame extends JFrame {
 
@@ -142,8 +136,10 @@ public class MapFrame extends JFrame {
   JProgressBar progressBar;
   private JPanel panel;
   Logger log = Logger.getLogger(this.getClass().getName());
+  private JButton butInfo;
 
   public MapFrame(String title) {
+  	setIconImage(Toolkit.getDefaultToolkit().getImage("TerraMaster logo cropped.ico"));
     try {
       MFAdapter ad = new MFAdapter();
 
@@ -151,18 +147,6 @@ public class MapFrame extends JFrame {
       setTitle(title);
       getContentPane().addComponentListener(ad);
 
-      addWindowListener(new WindowAdapter() {
-        public void windowClosing(WindowEvent e) {
-          TerraMaster.svn.quit();
-          storeSettings();
-          try {
-            TerraMaster.props.store(new FileWriter("terramaster.properties"),
-                null);
-          } catch (Exception x) {
-            log.log(Level.WARNING, "Couldn't store settings", e);
-          }
-        }
-      });
       getContentPane().setLayout(new BorderLayout(0, 0));
 
       panel = new JPanel();
@@ -175,7 +159,7 @@ public class MapFrame extends JFrame {
           30, 30, 0 };
       gbl_panel.rowHeights = new int[] { 33, 19, 0 };
       gbl_panel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-          0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0 };
+          0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
       gbl_panel.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
       panel.setLayout(gbl_panel);
 
@@ -284,7 +268,7 @@ public class MapFrame extends JFrame {
       butPrefs = new JButton(new ImageIcon(getClass().getClassLoader()
           .getResource("application.png")));
       GridBagConstraints gbc_butPrefs = new GridBagConstraints();
-      gbc_butPrefs.anchor = GridBagConstraints.NORTHWEST;
+      gbc_butPrefs.anchor = GridBagConstraints.NORTH;
       gbc_butPrefs.insets = new Insets(0, 0, 5, 5);
       gbc_butPrefs.gridx = 8;
       gbc_butPrefs.gridy = 0;
@@ -314,6 +298,23 @@ public class MapFrame extends JFrame {
       searchBar.addActionListener(ad);
       searchBar.setActionCommand("SEARCH");
       searchBar.setToolTipText("Search for airport by name or code");
+      
+      butInfo = new JButton(new ImageIcon(getClass().getClassLoader()
+              .getResource("Question.png")));
+      butInfo.addActionListener(new ActionListener() {
+      	public void actionPerformed(ActionEvent e) {
+      		AboutDialog dialog = new AboutDialog();
+      		dialog.setVisible(true);
+      	}
+      });
+      butInfo.setToolTipText("About");
+      butInfo.setActionCommand("PREFS");
+      GridBagConstraints gbc_butInfo = new GridBagConstraints();
+      gbc_butInfo.anchor = GridBagConstraints.NORTH;
+      gbc_butInfo.insets = new Insets(0, 0, 5, 0);
+      gbc_butInfo.gridx = 12;
+      gbc_butInfo.gridy = 0;
+      panel.add(butInfo, gbc_butInfo);
 
       progressBar = new JProgressBar();
       GridBagConstraints gbc_progressBar = new GridBagConstraints();
@@ -328,6 +329,20 @@ public class MapFrame extends JFrame {
       progressBar.setMaximum(0);
 
       map = new MapPanel();
+      addKeyListener(new KeyAdapter() {
+    	    
+    	    @Override
+    	    public void keyReleased(KeyEvent e) {
+    	    	System.out.println(e.getKeyChar());
+    	    }
+    	    
+        	@Override
+        	public void keyPressed(KeyEvent e) {
+        		if(e.getKeyCode() == KeyEvent.VK_SHIFT	)
+        			System.out.println("DD");
+        		map.keyEvent(e);
+        	}
+        });
       getContentPane().add(map, BorderLayout.CENTER);
 
       map.passFrame(this);
@@ -368,7 +383,7 @@ public class MapFrame extends JFrame {
 	    map.setFromMetres();
   }
 
-  private void storeSettings() {
+  public void storeSettings() {
     TerraMaster.props.setProperty(TerraMasterProperties.GEOMETRY,
         String.format("%dx%d%+d%+d", getWidth(), getHeight(), getX(), getY()));
     TerraMaster.props.setProperty(TerraMasterProperties.PROJECTION, Boolean.toString(map.isWinkel));
