@@ -1,6 +1,14 @@
-Class-Path: 
-Main-Class: TerraMasterLauncher
+Manifest-Version: 1.0
+Ant-Version: Apache Ant 1.9.6
+Created-By: 1.8.0_121-b13 (Oracle Corporation)
+Main-Class: org.flightgear.terramaster.TerraMasterLauncher
 Specification-Title: Terramaster
-Specification-Version: 1.7
-Implementation-Version: 1.7
+Specification-Version: 1.27
+Implementation-Version: 1.27
 Implementation-Vendor: 
+Built-By: keith.paterson
+Specification-Vendor: Flightgear
+Build-Time: 07.12.2017 10:32 
+Build-Number: 39
+Class-Path: 
+
