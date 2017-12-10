@@ -1,3 +1,4 @@
+package org.flightgear.terramaster;
 // WinkelTriple, Azimuthal Orthographic (globe)
 
 // svn --force co http://terrascenery.googlecode.com/svn/trunk/data/Scenery/Terrain/e100n00/e104n00
@@ -19,12 +20,14 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -35,7 +38,8 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 public class TerraMaster {
-	Logger log = Logger.getLogger(this.getClass().getName());
+	public static final String LOGGER_CATEGORY = "org.flightgear";
+	Logger log = Logger.getLogger(LOGGER_CATEGORY);
 	public static ArrayList<MapPoly> polys, borders;
 
 	static MapFrame frame;
@@ -194,6 +198,7 @@ public class TerraMaster {
 				} catch (Exception x) {
 					log.log(Level.WARNING, "Couldn't store settings", e);
 				}
+				log.info("Shut down Terramaster");
 			}
 		});
 	}
@@ -201,21 +206,26 @@ public class TerraMaster {
 	public static void main(String args[]) {
 		Properties p = new Properties();
 		try {
-			InputStream resourceAsStream = TerraMaster.class.getResourceAsStream("/terramaster.logging.properties");
+			InputStream resourceAsStream = TerraMaster.class.getClassLoader().getResourceAsStream("terramaster.logging.properties");
 			if (resourceAsStream != null) {
 				LogManager.getLogManager().readConfiguration(resourceAsStream);
+				Logger.getLogger("java.awt").setLevel(Level.OFF);
+			    Logger.getLogger("sun.awt").setLevel(Level.OFF);
+			    Logger.getLogger("javax.swing").setLevel(Level.OFF);
+			    Logger.getGlobal().info("Successfully configured logging");
 			}
 		} catch (SecurityException | IOException e1) {
 			e1.printStackTrace();
 		}
 		Logger LOG = Logger.getLogger(TerraMaster.class.getCanonicalName());
 		try {
-			InputStream resourceAsStream = TerraMaster.class.getResourceAsStream("/build.number");
+			InputStream resourceAsStream = TerraMaster.class.getClassLoader().getResourceAsStream("build.number");
 			if (resourceAsStream != null)
 				p.load(resourceAsStream);
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
+		readMetaINF();
 		// Logger.getGlobal().setLevel(Level.ALL);
 
 		fgmap = new FGMap(); // handles webqueries
@@ -224,7 +234,9 @@ public class TerraMaster {
 		try {
 			props.load(new FileReader("terramaster.properties"));
 			if (props.getProperty("LogLevel") != null) {
-				LOG.getParent().setLevel(Level.parse(props.getProperty("LogLevel")));
+				Logger.getGlobal().getParent().setLevel(Level.INFO);
+				Logger.getLogger(TerraMaster.LOGGER_CATEGORY).setLevel(Level.parse(props.getProperty("LogLevel")));
+				Logger.getGlobal().getParent().setLevel(Level.INFO);
 			}
 		} catch (IOException e) {
 			LOG.log(Level.WARNING, "Couldn't load properties : " + e.toString(), e);
@@ -254,6 +266,30 @@ public class TerraMaster {
 
 		}
 
+	}
+
+	private static void readMetaINF() {
+		Logger LOG = Logger.getLogger(TerraMaster.class.getCanonicalName());
+		try {
+			Enumeration<URL> resources = TerraMaster.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
+			while (resources.hasMoreElements()) {
+				try {
+					Manifest manifest = new Manifest(resources.nextElement().openStream());
+					// check that this is your manifest and do what you need or
+					// get
+					// the next one
+					if ("TerraMasterLauncher".equals(manifest.getMainAttributes().getValue("Main-Class"))) {						
+						for (Entry<Object, Object> entry : manifest.getMainAttributes().entrySet()) {
+							LOG.finest(entry.getKey() + "\t:\t" + entry.getValue());							
+						}
+					}
+				} catch (IOException E) {
+					// handle
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static void setTileService() {

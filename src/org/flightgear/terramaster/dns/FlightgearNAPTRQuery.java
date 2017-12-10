@@ -1,4 +1,4 @@
-package de.terramaster.dns;
+package org.flightgear.terramaster.dns;
 
 import java.io.EOFException;
 import java.io.FileInputStream;
@@ -14,16 +14,11 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.naming.Context;
-import javax.naming.NamingException;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.InitialDirContext;
-import javax.xml.namespace.QName;
+import org.flightgear.terramaster.TerraMaster;
 
 import net.sf.ivmaidns.dns.DNSConnection;
 import net.sf.ivmaidns.dns.DNSMsgHeader;
@@ -47,7 +42,7 @@ public class FlightgearNAPTRQuery {
 	
 	}
 
-	Logger log = Logger.getLogger(this.getClass().getName());
+	Logger log = Logger.getLogger(TerraMaster.LOGGER_CATEGORY);
 
 	private List<WeightedUrl> urls = new ArrayList<>();
 	private static final String TERRASYNC_SERVERS = "nameservers.bin";
@@ -74,6 +69,7 @@ public class FlightgearNAPTRQuery {
 		 		
 		ResolverConfiguration config = sun.net.dns.ResolverConfiguration.open();
 		List<String> nameservers = config.nameservers();
+		
 		// Add google
 		nameservers.add(0, "8.8.8.8");
 		

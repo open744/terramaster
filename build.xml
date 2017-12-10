@@ -22,11 +22,10 @@
           target: depends                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="compile">
-		<buildnumber/>				
-		<mkdir dir="${basedir}/ant-bin"/>
+		<mkdir dir="${basedir}/ant-bin" />
 		<copy todir="${basedir}/ant-bin">
 			<fileset dir="${basedir}">
-				<include name="build.number"/>				
+				<include name="build.number" />
 			</fileset>
 		</copy>
 		<javac debug="true" includeantruntime="false" srcdir="${basedir}/src" optimize="false" verbose="false" destdir="${basedir}/ant-bin">
@@ -41,7 +40,21 @@
 	<!-- - - - - - - - - - - - - - - - - - 
           target: jar                      
          - - - - - - - - - - - - - - - - - -->
-	<target name="jar">
+	<target name="jar" depends="compile">
+		<property file="version.properties"/>
+		<buildnumber />
+		<tstamp />
+		<tstamp>
+			<format property="build.time" pattern="dd.MM.yyyy hh:mm " />
+		</tstamp>
+		<manifest file="manifest" mode="update">
+			<attribute name="Built-By" value="${user.name}" />
+			<attribute name="Specification-Version" value="${major.version}.${minor.version}" />
+			<attribute name="Implementation-Version" value="${major.version}.${minor.version}" />
+			<attribute name="Specification-Vendor" value="Flightgear" />
+			<attribute name="Build-Time" value="${build.time}" />
+			<attribute name="Build-Number" value="${build.number}" />
+		</manifest>
 		<jar destfile="terramaster.jar" manifest="manifest">
 			<fileset dir="ant-bin">
 				<include name="**/*" />
@@ -68,5 +81,17 @@
 				<include name="**/*" />
 			</fileset>
 		</zip>
+	</target>
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: bump_version                      
+         - - - - - - - - - - - - - - - - - -->
+    <target name="bump_version">
+		<propertyfile file="version.properties">
+			<entry key="minor.version" type="int" operation="+" value="1" />
+		</propertyfile>            
+    </target>
+
+	<target name="release" depends="bump_version, jar">
+        
 	</target>
 </project>

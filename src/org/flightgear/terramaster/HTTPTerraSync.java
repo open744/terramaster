@@ -1,3 +1,4 @@
+package org.flightgear.terramaster;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,8 +24,8 @@ import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
-import de.terramaster.dns.FlightgearNAPTRQuery;
-import de.terramaster.dns.WeightedUrl;
+import org.flightgear.terramaster.dns.FlightgearNAPTRQuery;
+import org.flightgear.terramaster.dns.WeightedUrl;
 
 /**
  * Implementation of the new TerraSync Version
@@ -33,7 +34,7 @@ import de.terramaster.dns.WeightedUrl;
  */
 
 public class HTTPTerraSync extends Thread implements TileService {
-	Logger log = Logger.getLogger(this.getClass().getName());
+	Logger log = Logger.getLogger(TerraMaster.LOGGER_CATEGORY);
 
 	private static final int RESET = 1;
 	private static final int UPDATE = 2;
@@ -216,11 +217,11 @@ public class HTTPTerraSync extends Thread implements TileService {
 				// syncList is now empty
 				invokeLater(RESET, 0); // reset progressBar
 			}
+			log.fine("HTTP TerraSync ended gracefully");			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "HTTP Crashed ", e);
 			e.printStackTrace();
 		}
-		log.fine("HTTP TerraSync ended");
 	}
 
 	/**

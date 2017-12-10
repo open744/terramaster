@@ -1,10 +1,11 @@
+package org.flightgear.terramaster;
 import java.awt.Color;
 import java.awt.Desktop;
-import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -16,23 +17,19 @@ import java.util.logging.Logger;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
+import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
-import javax.swing.JEditorPane;
-import java.awt.Toolkit;
 
 public class AboutDialog extends JDialog {
-	Logger log = Logger.getLogger(this.getClass().getName());
+	Logger log = Logger.getLogger(TerraMaster.LOGGER_CATEGORY);
 
 	private final class HyperLinkListener implements HyperlinkListener {
 		public void hyperlinkUpdate(HyperlinkEvent hle) {
 			if (HyperlinkEvent.EventType.ACTIVATED.equals(hle.getEventType())) {
-				System.out.println(hle.getURL());
+				log.fine("Calling " + hle.getURL().toExternalForm());
 				try {
 					Desktop.getDesktop().browse(new URI(hle.getURL().toExternalForm()));
 				} catch (IOException e) {

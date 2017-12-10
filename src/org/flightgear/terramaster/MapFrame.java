@@ -1,3 +1,4 @@
+package org.flightgear.terramaster;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
@@ -135,7 +136,7 @@ public class MapFrame extends JFrame {
   JFileChooser fc = new JFileChooser();
   JProgressBar progressBar;
   private JPanel panel;
-  Logger log = Logger.getLogger(this.getClass().getName());
+  Logger log = Logger.getLogger(TerraMaster.LOGGER_CATEGORY);
   private JButton butInfo;
 
   public MapFrame(String title) {
@@ -175,11 +176,11 @@ public class MapFrame extends JFrame {
       tileName.setFont(new Font("SansSerif", Font.BOLD, 16));
 
       butSync = new JButton(new ImageIcon(getClass().getClassLoader()
-          .getResource("Sync.png")));
+          .getResource("Sync.png"))); 
       GridBagConstraints gbc_butSync = new GridBagConstraints();
       gbc_butSync.anchor = GridBagConstraints.NORTHWEST;
       gbc_butSync.insets = new Insets(0, 0, 5, 5);
-      gbc_butSync.gridx = 1;
+      gbc_butSync.gridx = 1; 
       gbc_butSync.gridy = 0;
       panel.add(butSync, gbc_butSync);
       butSync.setEnabled(false);
@@ -201,11 +202,11 @@ public class MapFrame extends JFrame {
       butDelete.setToolTipText("Delete selected tiles from disk");
 
       butSearch = new JButton(new ImageIcon(
-          MapFrame.class.getResource("Eye.png")));
+          MapFrame.class.getResource("/Eye.png")));
       GridBagConstraints gbc_butSearch = new GridBagConstraints();
       gbc_butSearch.anchor = GridBagConstraints.NORTHWEST;
       gbc_butSearch.insets = new Insets(0, 0, 5, 5);
-      gbc_butSearch.gridx = 3;
+      gbc_butSearch.gridx = 5;
       gbc_butSearch.gridy = 0;
       panel.add(butSearch, gbc_butSearch);
       butSearch.setEnabled(false);
@@ -231,7 +232,7 @@ public class MapFrame extends JFrame {
       GridBagConstraints gbc_butModels = new GridBagConstraints();
       gbc_butModels.anchor = GridBagConstraints.NORTHWEST;
       gbc_butModels.insets = new Insets(0, 0, 5, 5);
-      gbc_butModels.gridx = 5;
+      gbc_butModels.gridx = 3;
       gbc_butModels.gridy = 0;
       panel.add(butModels, gbc_butModels);
       butModels.setEnabled(true);
@@ -348,6 +349,7 @@ public class MapFrame extends JFrame {
       map.passFrame(this);
     } catch (Throwable e) {
       log.log(Level.SEVERE, "Couldn't show MapFrame", e);
+      e.printStackTrace();
     }
 
     /*
