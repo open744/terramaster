@@ -13,6 +13,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -32,10 +33,14 @@ import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.MatteBorder;
 import java.awt.Toolkit;
+import javax.swing.Icon;
 
 public class MapFrame extends JFrame {
 
-  // this Adapter is used by the child elements
+  private static final String SYNC_OLD = "SYNC_OLD";
+private static final String SYNC = "SYNC";
+
+// this Adapter is used by the child elements
   public class MFAdapter extends ComponentAdapter implements ActionListener {
 
     public void componentMoved(ComponentEvent e) {
@@ -63,9 +68,18 @@ public class MapFrame extends JFrame {
     public void actionPerformed(ActionEvent e) {
       String a = e.getActionCommand();
 
-      if (a.equals("SYNC")) {
-        Collection<TileName> set = map.getSelection();
-        TerraMaster.svn.sync(set);
+      if (a.equals(SYNC)) {
+          Collection<TileName> set = map.getSelection();
+          TerraMaster.svn.sync(set, false);
+          progressBar.setMaximum(progressBar.getMaximum() + set.size() * 2);
+          progressBar.setVisible(true);
+          butStop.setEnabled(true);
+          map.clearSelection();
+          repaint();
+        } else
+      if (a.equals(SYNC_OLD)) {
+        Collection<TileName> set = TerraMaster.mapScenery.keySet();
+        TerraMaster.svn.sync(set, true);
         progressBar.setMaximum(progressBar.getMaximum() + set.size() * 2);
         progressBar.setVisible(true);
         butStop.setEnabled(true);
@@ -76,7 +90,7 @@ public class MapFrame extends JFrame {
       if (a.equals("MODELS")) {
         Collection<TileName> set = new ArrayList<TileName>();
         set.add(new TileName("MODELS"));
-        TerraMaster.svn.sync(set);
+        TerraMaster.svn.sync(set, false);
         progressBar.setMaximum(progressBar.getMaximum() + set.size() * 1);
         progressBar.setVisible(true);
         butStop.setEnabled(true);
@@ -138,6 +152,7 @@ public class MapFrame extends JFrame {
   private JPanel panel;
   Logger log = Logger.getLogger(TerraMaster.LOGGER_CATEGORY);
   private JButton butInfo;
+  private JButton butSyncOld;
 
   public MapFrame(String title) {
   	setIconImage(Toolkit.getDefaultToolkit().getImage("TerraMaster logo cropped.ico"));
@@ -156,10 +171,10 @@ public class MapFrame extends JFrame {
           .getColor("Panel.background")));
       getContentPane().add(panel, BorderLayout.NORTH);
       GridBagLayout gbl_panel = new GridBagLayout();
-      gbl_panel.columnWidths = new int[] { 63, 57, 57, 57, 57, 57, 57, 57, 10,
+      gbl_panel.columnWidths = new int[] { 63, 0, 57, 57, 57, 57, 57, 57, 57, 10,
           30, 30, 0 };
       gbl_panel.rowHeights = new int[] { 33, 19, 0 };
-      gbl_panel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      gbl_panel.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
           0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
       gbl_panel.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
       panel.setLayout(gbl_panel);
@@ -174,26 +189,37 @@ public class MapFrame extends JFrame {
       gbc_tileName.gridy = 0;
       panel.add(tileName, gbc_tileName);
       tileName.setFont(new Font("SansSerif", Font.BOLD, 16));
-
-      butSync = new JButton(new ImageIcon(getClass().getClassLoader()
-          .getResource("Sync.png"))); 
-      GridBagConstraints gbc_butSync = new GridBagConstraints();
-      gbc_butSync.anchor = GridBagConstraints.NORTHWEST;
-      gbc_butSync.insets = new Insets(0, 0, 5, 5);
-      gbc_butSync.gridx = 1; 
-      gbc_butSync.gridy = 0;
-      panel.add(butSync, gbc_butSync);
-      butSync.setEnabled(false);
-      butSync.addActionListener(ad);
-      butSync.setActionCommand("SYNC");
-      butSync.setToolTipText("Synchronise selected tiles");
+      
+            butSync = new JButton(new ImageIcon(getClass().getClassLoader()
+                .getResource("Sync.png"))); 
+            GridBagConstraints gbc_butSync = new GridBagConstraints();
+            gbc_butSync.anchor = GridBagConstraints.NORTHWEST;
+            gbc_butSync.insets = new Insets(0, 0, 5, 5);
+            gbc_butSync.gridx = 1; 
+            gbc_butSync.gridy = 0;
+            panel.add(butSync, gbc_butSync);
+            butSync.setEnabled(false);
+            butSync.addActionListener(ad);
+            butSync.setActionCommand(SYNC);
+            butSync.setToolTipText("Synchronise selected tiles");
+      
+      butSyncOld = new JButton(new ImageIcon(getClass().getClassLoader()
+              .getResource("Sync.png")));
+      butSyncOld.setToolTipText("Synchronise all old tiles");
+      butSyncOld.addActionListener(ad);
+      butSyncOld.setActionCommand(SYNC_OLD);
+      GridBagConstraints gbc_butSyncOld = new GridBagConstraints();
+      gbc_butSyncOld.insets = new Insets(0, 0, 5, 5);
+      gbc_butSyncOld.gridx = 2;
+      gbc_butSyncOld.gridy = 0;
+      panel.add(butSyncOld, gbc_butSyncOld);
 
       butDelete = new JButton(new ImageIcon(getClass().getClassLoader()
           .getResource("Trash.png")));
       GridBagConstraints gbc_butDelete = new GridBagConstraints();
       gbc_butDelete.anchor = GridBagConstraints.NORTHWEST;
       gbc_butDelete.insets = new Insets(0, 0, 5, 5);
-      gbc_butDelete.gridx = 2;
+      gbc_butDelete.gridx = 3;
       gbc_butDelete.gridy = 0;
       panel.add(butDelete, gbc_butDelete);
       butDelete.setEnabled(false);
@@ -206,7 +232,7 @@ public class MapFrame extends JFrame {
       GridBagConstraints gbc_butSearch = new GridBagConstraints();
       gbc_butSearch.anchor = GridBagConstraints.NORTHWEST;
       gbc_butSearch.insets = new Insets(0, 0, 5, 5);
-      gbc_butSearch.gridx = 5;
+      gbc_butSearch.gridx = 6;
       gbc_butSearch.gridy = 0;
       panel.add(butSearch, gbc_butSearch);
       butSearch.setEnabled(false);
@@ -219,7 +245,7 @@ public class MapFrame extends JFrame {
       GridBagConstraints gbc_butStop = new GridBagConstraints();
       gbc_butStop.anchor = GridBagConstraints.NORTHWEST;
       gbc_butStop.insets = new Insets(0, 0, 5, 5);
-      gbc_butStop.gridx = 4;
+      gbc_butStop.gridx = 5;
       gbc_butStop.gridy = 0;
       panel.add(butStop, gbc_butStop);
       butStop.setEnabled(false);
@@ -232,7 +258,7 @@ public class MapFrame extends JFrame {
       GridBagConstraints gbc_butModels = new GridBagConstraints();
       gbc_butModels.anchor = GridBagConstraints.NORTHWEST;
       gbc_butModels.insets = new Insets(0, 0, 5, 5);
-      gbc_butModels.gridx = 3;
+      gbc_butModels.gridx = 4;
       gbc_butModels.gridy = 0;
       panel.add(butModels, gbc_butModels);
       butModels.setEnabled(true);
@@ -245,7 +271,7 @@ public class MapFrame extends JFrame {
       GridBagConstraints gbc_butClear = new GridBagConstraints();
       gbc_butClear.anchor = GridBagConstraints.NORTHWEST;
       gbc_butClear.insets = new Insets(0, 0, 5, 5);
-      gbc_butClear.gridx = 6;
+      gbc_butClear.gridx = 7;
       gbc_butClear.gridy = 0;
       panel.add(butClear, gbc_butClear);
       butClear.addActionListener(ad);
@@ -259,7 +285,7 @@ public class MapFrame extends JFrame {
       GridBagConstraints gbc_butReset = new GridBagConstraints();
       gbc_butReset.anchor = GridBagConstraints.NORTHWEST;
       gbc_butReset.insets = new Insets(0, 0, 5, 5);
-      gbc_butReset.gridx = 7;
+      gbc_butReset.gridx = 8;
       gbc_butReset.gridy = 0;
       panel.add(butReset, gbc_butReset);
       butReset.addActionListener(ad);
@@ -271,7 +297,7 @@ public class MapFrame extends JFrame {
       GridBagConstraints gbc_butPrefs = new GridBagConstraints();
       gbc_butPrefs.anchor = GridBagConstraints.NORTH;
       gbc_butPrefs.insets = new Insets(0, 0, 5, 5);
-      gbc_butPrefs.gridx = 8;
+      gbc_butPrefs.gridx = 9;
       gbc_butPrefs.gridy = 0;
       panel.add(butPrefs, gbc_butPrefs);
       butPrefs.addActionListener(ad);
@@ -282,7 +308,7 @@ public class MapFrame extends JFrame {
       GridBagConstraints gbc_search = new GridBagConstraints();
       gbc_search.anchor = GridBagConstraints.WEST;
       gbc_search.insets = new Insets(0, 0, 5, 5);
-      gbc_search.gridx = 9;
+      gbc_search.gridx = 10;
       gbc_search.gridy = 0;
       panel.add(search, gbc_search);
       search.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
@@ -293,7 +319,7 @@ public class MapFrame extends JFrame {
       gbc_searchBar.fill = GridBagConstraints.HORIZONTAL;
       gbc_searchBar.gridwidth = 2;
       gbc_searchBar.insets = new Insets(0, 0, 5, 5);
-      gbc_searchBar.gridx = 10;
+      gbc_searchBar.gridx = 11;
       gbc_searchBar.gridy = 0;
       panel.add(searchBar, gbc_searchBar);
       searchBar.addActionListener(ad);
@@ -313,7 +339,7 @@ public class MapFrame extends JFrame {
       GridBagConstraints gbc_butInfo = new GridBagConstraints();
       gbc_butInfo.anchor = GridBagConstraints.NORTH;
       gbc_butInfo.insets = new Insets(0, 0, 5, 0);
-      gbc_butInfo.gridx = 12;
+      gbc_butInfo.gridx = 13;
       gbc_butInfo.gridy = 0;
       panel.add(butInfo, gbc_butInfo);
 
@@ -321,7 +347,7 @@ public class MapFrame extends JFrame {
       GridBagConstraints gbc_progressBar = new GridBagConstraints();
       gbc_progressBar.fill = GridBagConstraints.HORIZONTAL;
       gbc_progressBar.anchor = GridBagConstraints.NORTH;
-      gbc_progressBar.gridwidth = 13;
+      gbc_progressBar.gridwidth = 14;
       gbc_progressBar.gridx = 0;
       gbc_progressBar.gridy = 1;
       panel.add(progressBar, gbc_progressBar);

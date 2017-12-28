@@ -1,7 +1,7 @@
 package org.flightgear.terramaster;
+
 import java.io.File;
 import java.util.Collection;
-
 
 public interface TileService {
 
@@ -9,7 +9,7 @@ public interface TileService {
 
 	void start();
 
-	void sync(Collection<TileName> set);
+	void sync(Collection<TileName> set, boolean ageCheck);
 
 	Collection<TileName> getSyncList();
 
@@ -19,7 +19,7 @@ public interface TileService {
 
 	void delete(Collection<TileName> selection);
 
-  void setTypes(boolean selected, boolean selected2, boolean selected3);
+	void setTypes(boolean selected, boolean selected2, boolean selected3);
 
-  void restoreSettings();
+	void restoreSettings();
 }

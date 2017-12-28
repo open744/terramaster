@@ -1,4 +1,5 @@
 package org.flightgear.terramaster;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,6 +13,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,6 +29,8 @@ import javax.swing.SwingUtilities;
 
 import org.flightgear.terramaster.dns.FlightgearNAPTRQuery;
 import org.flightgear.terramaster.dns.WeightedUrl;
+
+import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
 /**
  * Implementation of the new TerraSync Version
@@ -47,6 +52,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 	Random rand = new Random();
 	private File localBaseDir;
 
+	private boolean ageCheck;
+
 	public HTTPTerraSync() {
 		super("HTTPTerraSync");
 	}
@@ -54,17 +61,28 @@ public class HTTPTerraSync extends Thread implements TileService {
 	@Override
 	public void setScnPath(File file) {
 		localBaseDir = file;
-	}
+	} 
 
 	@Override
-	public void sync(Collection<TileName> set) {
+	public void sync(Collection<TileName> set, boolean ageCheck) {
+		
+		this.ageCheck = ageCheck;
 		for (Iterator iterator = set.iterator(); iterator.hasNext();) {
 			TileName tileName = (TileName) iterator.next();
+			if(tileName==null)
+				continue;
+			synchronized (syncList) {
+				syncList.add(tileName);
+				cancelFlag = false;
+				Collections.sort(syncList, new Comparator<TileName>() {
+
+					@Override
+					public int compare(TileName o1, TileName o2) {
+						return o1.getName().compareTo(o2.getName());
+					}
+				});
+			}			
 			log.finest("Added " + tileName.getName() + " to queue");
-		}
-		synchronized (syncList) {
-			syncList.addAll(set);
-			cancelFlag = false;
 		}
 		synchronized (this) {
 			try {
@@ -75,6 +93,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 			}
 		}
 	}
+
 
 	@Override
 	public Collection<TileName> getSyncList() {
@@ -217,7 +236,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 				// syncList is now empty
 				invokeLater(RESET, 0); // reset progressBar
 			}
-			log.fine("HTTP TerraSync ended gracefully");			
+			log.fine("HTTP TerraSync ended gracefully");
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "HTTP Crashed ", e);
 			e.printStackTrace();
@@ -367,6 +386,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 			log.finest("Content-Length = " + contentLength);
 			log.finest("fileName = " + fileName);
 
+			httpConn.setConnectTimeout(10000);
+			httpConn.setReadTimeout(20000);
 			// opens input stream from the HTTP connection
 			InputStream inputStream = httpConn.getInputStream();
 
@@ -417,22 +438,24 @@ public class HTTPTerraSync extends Thread implements TileService {
 		while (urls.size() > 0) {
 			URL baseUrl = getBaseUrl();
 			try {
+				
 				int updates = 0;
 				if (cancelFlag)
 					return updates;
+				String localDirIndex = readDirIndex(path);
+				String[] localLines = localDirIndex.split("\r?\n");
+				if( !force && ageCheck && getDirIndexAge(path) > maxAge )
+					return localLines.length;
 				URL dirIndexFileURL = new URL(baseUrl.toExternalForm() + path.replace("\\", "/") + "/.dirindex");
 				log.finest(dirIndexFileURL.toExternalForm());
 				String remoteDirIndex = new String(getFile(dirIndexFileURL));
-				String localDirIndex = readDirIndex(path);
 				String[] lines = remoteDirIndex.split("\r?\n");
-				String[] localLines = localDirIndex.split("\r?\n");
 				HashMap<String, String> lookup = new HashMap<String, String>();
 				for (int i = 0; i < localLines.length; i++) {
 					String line = localLines[i];
 					String[] splitLine = line.split(":");
 					if (splitLine.length > 2)
-						lookup.put(splitLine[1], splitLine[2]);
-				}
+						lookup.put(splitLine[1], splitLine[2]);				}
 				for (int i = 0; i < lines.length; i++) {
 					if (cancelFlag)
 						return updates;
@@ -488,7 +511,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 						"SSL Error", JOptionPane.ERROR_MESSAGE);
 				urls.remove(baseUrl);
 			} catch (Exception e) {
-				log.log(Level.WARNING, "General Error " + e.toString() + " syncing " + path, e);
+				log.log(Level.WARNING, "General Error " + e.toString() + " syncing with " + baseUrl.toExternalForm() + path.replace("\\", "/") , e);
 				return 0;
 			}
 		}
@@ -498,6 +521,11 @@ public class HTTPTerraSync extends Thread implements TileService {
 	private String readDirIndex(String path) throws NoSuchAlgorithmException, IOException {
 		File file = new File(new File(localBaseDir, path), ".dirindex");
 		return file.exists() ? new String(readFile(file)) : "";
+	}
+
+	private long getDirIndexAge(String path) throws NoSuchAlgorithmException, IOException {
+		File file = new File(new File(localBaseDir, path), ".dirindex");
+		return file.exists() ? (System.currentTimeMillis() - file.lastModified()) : (Long.MAX_VALUE);
 	}
 
 	private void storeDirIndex(String path, String remoteDirIndex) throws IOException {
@@ -513,6 +541,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 	private boolean objects;
 
 	private boolean buildings;
+
+	private long maxAge;
 
 	private String bytesToHex(byte[] bytes) {
 		char[] hexChars = new char[bytes.length * 2];
@@ -626,6 +656,8 @@ public class HTTPTerraSync extends Thread implements TileService {
 		objects = Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.OBJECTS.name(), "true"));
 		buildings = Boolean
 				.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.BUILDINGS.name(), "false"));
+		maxAge = Long.parseLong(TerraMaster.props.getProperty("MaxTileAge", "" + 0));
+		
 	}
 
 }

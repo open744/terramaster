@@ -654,10 +654,8 @@ class MapPanel extends JPanel {
 
 	void showTiles(Graphics g0) {
 		Graphics2D g = (Graphics2D) g0;
-		Color color, bg = new Color(0, 0, 0, 0), grey = new Color(128, 128, 128, 224),
-				green = new Color(64, 224, 0, 128), amber = new Color(192, 192, 0, 128);
 
-		g.setBackground(bg);
+		g.setBackground(Color.black);
 		// g.clearRect(0, 0, 1600, 800);
 		// g.setTransform(affine);
 

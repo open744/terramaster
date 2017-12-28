@@ -41,6 +41,7 @@ public class SettingsDialog extends JDialog {
 	private Vector<Level> levels = new Vector<Level>();
 	private JComboBox<Level> cmbLogLevel;
 	private Logger root;
+	private JTextField tileage;
 
 	{
 		levels.addElement(Level.ALL);
@@ -57,15 +58,15 @@ public class SettingsDialog extends JDialog {
 	public SettingsDialog() {
 		setTitle("Settings");
 		setModal(true);
-		setBounds(100, 100, 541, 270);
+		setBounds(100, 100, 460, 296);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		getContentPane().add(contentPanel, BorderLayout.CENTER);
 		GridBagLayout gbl_contentPanel = new GridBagLayout();
 		gbl_contentPanel.columnWidths = new int[] { 0, 0, 40, 0 };
-		gbl_contentPanel.rowHeights = new int[] { 0, 0, 22, 0 };
+		gbl_contentPanel.rowHeights = new int[] { 0, 0, 22, 0, 0 };
 		gbl_contentPanel.columnWeights = new double[] { 0.0, 1.0, 1.0, Double.MIN_VALUE };
-		gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
+		gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 };
 		contentPanel.setLayout(gbl_contentPanel);
 		{
 			{
@@ -144,6 +145,7 @@ public class SettingsDialog extends JDialog {
 									Boolean.toString(chckbxObjects.isSelected()));
 							TerraMaster.props.setProperty(TerraSyncDirectoryTypes.BUILDINGS.name(),
 									Boolean.toString(chckbxBuildings.isSelected()));
+							TerraMaster.props.setProperty("MaxTileAge", "" + (Integer.parseInt(tileage.getText()) * 24 * 3600));
 						} catch (Exception x) {
 							x.printStackTrace();
 						}
@@ -168,7 +170,7 @@ public class SettingsDialog extends JDialog {
 		{
 			{
 				cmbScenerySource = new JComboBox();
-				cmbScenerySource.setModel(new DefaultComboBoxModel(new String[] { "Terrasync (SVN)", "HTTP" }));
+				cmbScenerySource.setModel(new DefaultComboBoxModel(new String[] {"Terrasync (SVN)", "HTTP"}));
 				cmbScenerySource.setSelectedItem(TerraMaster.props.getProperty(TerraMasterProperties.SERVER_TYPE));
 				GridBagConstraints gbc_comboBox = new GridBagConstraints();
 				gbc_comboBox.insets = new Insets(0, 0, 5, 5);
@@ -229,7 +231,7 @@ public class SettingsDialog extends JDialog {
 			JLabel lblLogLevel = new JLabel("Log Level");
 			GridBagConstraints gbc_lblLogLevel = new GridBagConstraints();
 			gbc_lblLogLevel.anchor = GridBagConstraints.EAST;
-			gbc_lblLogLevel.insets = new Insets(0, 0, 0, 5);
+			gbc_lblLogLevel.insets = new Insets(0, 0, 5, 5);
 			gbc_lblLogLevel.gridx = 0;
 			gbc_lblLogLevel.gridy = 3;
 			contentPanel.add(lblLogLevel, gbc_lblLogLevel);
@@ -261,11 +263,37 @@ public class SettingsDialog extends JDialog {
 			});
 			cmbLogLevel.setModel(new DefaultComboBoxModel(levels));
 			GridBagConstraints gbc_cmbLogLevel = new GridBagConstraints();
-			gbc_cmbLogLevel.insets = new Insets(0, 0, 0, 5);
+			gbc_cmbLogLevel.insets = new Insets(0, 0, 5, 5);
 			gbc_cmbLogLevel.fill = GridBagConstraints.HORIZONTAL;
 			gbc_cmbLogLevel.gridx = 1;
 			gbc_cmbLogLevel.gridy = 3;
 			contentPanel.add(cmbLogLevel, gbc_cmbLogLevel);
+		}
+		{
+			JLabel lblMaxTileAge = new JLabel("max tile age");
+			GridBagConstraints gbc_lblMaxTileAge = new GridBagConstraints();
+			gbc_lblMaxTileAge.insets = new Insets(0, 0, 0, 5);
+			gbc_lblMaxTileAge.anchor = GridBagConstraints.EAST;
+			gbc_lblMaxTileAge.gridx = 0;
+			gbc_lblMaxTileAge.gridy = 4;
+			contentPanel.add(lblMaxTileAge, gbc_lblMaxTileAge);
+		}
+		{
+			tileage = new JTextField();
+			GridBagConstraints gbc_tileage = new GridBagConstraints();
+			gbc_tileage.insets = new Insets(0, 0, 0, 5);
+			gbc_tileage.fill = GridBagConstraints.HORIZONTAL;
+			gbc_tileage.gridx = 1;
+			gbc_tileage.gridy = 4;
+			contentPanel.add(tileage, gbc_tileage);
+			tileage.setColumns(10);
+		}
+		{
+			JLabel lblDays = new JLabel("days");
+			GridBagConstraints gbc_lblDays = new GridBagConstraints();
+			gbc_lblDays.gridx = 2;
+			gbc_lblDays.gridy = 4;
+			contentPanel.add(lblDays, gbc_lblDays);
 		}
 		restoreValues();
 	}
@@ -276,6 +304,8 @@ public class SettingsDialog extends JDialog {
 			root = root.getParent();
 
 		cmbLogLevel.setSelectedItem(root.getLevel());
+		tileage.setText(""+(Integer.parseInt(TerraMaster.props.getProperty("MaxTileAge") ) / (24 * 3600)));
+
 	}
 
 	private class SwingAction extends AbstractAction {
