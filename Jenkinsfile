@@ -25,7 +25,5 @@ pipeline {
         archiveArtifacts '*terramaster*.jar'
       }
     }
-    
-    github-release info -s bb120c7e2e7ff9209d5f4be726f2b97f5cb7a541 -u Portree-Kid -r terramaster
   }
 }
