@@ -11,7 +11,7 @@ pipeline {
         archiveArtifacts '*terramaster*.jar'    
       }
     }
-    //github-release info -s 476fa6b2-c964-4f69-acc3-4ab254eb53d9 -u Portree-Kid
+    
     stage( 'deploy' ) {
       steps{
         withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
@@ -21,7 +21,7 @@ pipeline {
         }  
         git credentialsId: 'github', url: 'https://github.com/Portree-Kid/terramaster.git'
         bat 'C:\\Users\\keith.paterson\\go\\bin\\github-release info -s ${env.sid} -u Portree-Kid -r terramaster'
-        bat 'C:\\Users\\keith.paterson\\go\\bin\\github-release info -s ${env.sid} -u Portree-Kid -r terramaster'
+        bat 'C:\\Users\\keith.paterson\\go\\bin\\github-release release -s ${env.sid} -u Portree-Kid -r terramaster'
         archiveArtifacts '*terramaster*.jar'
       }
     }
