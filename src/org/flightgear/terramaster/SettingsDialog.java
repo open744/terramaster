@@ -304,7 +304,7 @@ public class SettingsDialog extends JDialog {
 			root = root.getParent();
 
 		cmbLogLevel.setSelectedItem(root.getLevel());
-		tileage.setText(""+(Integer.parseInt(TerraMaster.props.getProperty("MaxTileAge") ) / (24 * 3600)));
+		tileage.setText(""+(Integer.parseInt(TerraMaster.props.getProperty("MaxTileAge", "100") ) / (24 * 3600)));
 
 	}
 
