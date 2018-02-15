@@ -39,6 +39,10 @@ import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
  */
 
 public class HTTPTerraSync extends Thread implements TileService {
+	private static final int DIR_SIZE = 400;
+
+	private static final int AIRPORT_MAX = 30000;
+
 	Logger log = Logger.getLogger(TerraMaster.LOGGER_CATEGORY);
 
 	private static final int RESET = 1;
@@ -191,8 +195,9 @@ public class HTTPTerraSync extends Thread implements TileService {
 					}
 				}
 				HashSet<String> apt = new HashSet<String>();
+				int tilesize = (terrain?DIR_SIZE:0) + (objects?DIR_SIZE:0) + (buildings?2000:0);
 				// update progressbar
-				invokeLater(EXTEND, syncList.size() * 400 + 3000); // update
+				invokeLater(EXTEND, syncList.size() * tilesize  + AIRPORT_MAX); // update
 				while (syncList.size() > 0) {
 					urls = new FlightgearNAPTRQuery().queryDNSServer("ws20");
 					final TileName n;
@@ -256,17 +261,17 @@ public class HTTPTerraSync extends Thread implements TileService {
 			if (terrain) {
 				int updates = syncDirectory(TerraSyncDirectoryTypes.TERRAIN.dirname + path, false,
 						TerraSyncDirectoryTypes.TERRAIN);
-				invokeLater(UPDATE, 200 - updates); // update progressBar
+				invokeLater(UPDATE, DIR_SIZE - updates); // update progressBar
 			}
 			if (objects) {
 				int updates = syncDirectory(TerraSyncDirectoryTypes.OBJECTS.dirname + path, false,
 						TerraSyncDirectoryTypes.OBJECTS);
-				invokeLater(UPDATE, 200 - updates); // update progressBar
+				invokeLater(UPDATE, DIR_SIZE - updates); // update progressBar
 			}
 			if (buildings) {
 				int updates = syncDirectory(TerraSyncDirectoryTypes.BUILDINGS.dirname + path, false,
 						TerraSyncDirectoryTypes.BUILDINGS);
-				invokeLater(UPDATE, 200 - updates); // update progressBar
+				invokeLater(UPDATE, 2000 - updates); // update progressBar
 			}
 			HashSet<String> apt = findAirports(
 					new File(localBaseDir, TerraSyncDirectoryTypes.TERRAIN + File.separator + path));
@@ -315,7 +320,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 			String node = String.format("Airports/%c/%c/%c", i.charAt(0), i.charAt(1), i.charAt(2));
 			nodes.add(node);
 		}
-		invokeLater(UPDATE, 3000 - nodes.size() * 100);
+		invokeLater(UPDATE, AIRPORT_MAX - nodes.size() * 100);
 		for (String node : nodes) {
 			int updates = syncDirectory(node, false, TerraSyncDirectoryTypes.AIRPORTS);
 			invokeLater(UPDATE, 100 - updates);
@@ -618,7 +623,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 
 	private void invokeLater(final int action, final int num) {
 		if (num < 0)
-			log.warning("Update < 0");
+			log.warning("Update < 0 (" + action + ")");
 		// invoke this on the Event Disp Thread
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
