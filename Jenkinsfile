@@ -1,5 +1,9 @@
 pipeline {
   agent any
+  environment{
+      def files = findFiles(glob: '**/*terramaster*.jar')
+  }
+
   stages {
     stage( 'build' ) {
       steps{
@@ -13,7 +17,6 @@ pipeline {
     }
     
     stage( 'deploy' ) {
-      def files = findFiles(glob: '**/*terramaster*.jar')
       steps{
         withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
           withAnt('installation' : 'apache-ant-1.10.1') {
