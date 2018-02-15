@@ -1,7 +1,7 @@
 pipeline {
   agent any
   environment{
-      def files = findFiles(glob: '**/terramaster.jar')
+      def files = findFiles(glob: '**/terramaster.jar')[0]
   }
 
   stages {
@@ -27,7 +27,7 @@ pipeline {
         withEnv(["SID=${env.sid}"]) {
            echo """${files}"""
 //           bat 'C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t 1.10'
-           bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t 1.10 -f ${files}[0]"""
+           bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t 1.10 -f ${files}"""
         }
         archiveArtifacts '*terramaster*.jar'
       }
