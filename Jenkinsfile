@@ -1,7 +1,7 @@
 pipeline {
   agent any
   environment{
-      def files = findFiles(glob: '**/terramaster.jar').getPath()
+      def files = findFiles(glob: '**/terramaster.jar')[0].getPath()
   }
 
   stages {
