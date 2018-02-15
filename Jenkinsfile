@@ -26,8 +26,8 @@ pipeline {
         git credentialsId: 'github', url: 'https://github.com/Portree-Kid/terramaster.git'
         withEnv(["SID=${env.sid}"]) {
            echo """${files}"""
-           bat 'C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t 1.9'
-           bat 'C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t 1.9 -f ${files}'
+           bat 'C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t 1.10'
+           bat 'C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t 1.10 -f ${files}'
         }
         archiveArtifacts '*terramaster*.jar'
       }
