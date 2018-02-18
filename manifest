@@ -3,12 +3,12 @@ Ant-Version: Apache Ant 1.9.6
 Created-By: 1.8.0_121-b13 (Oracle Corporation)
 Main-Class: org.flightgear.terramaster.TerraMasterLauncher
 Specification-Title: Terramaster
-Specification-Version: 1.27
-Implementation-Version: 1.27
+Specification-Version: 1.9
+Implementation-Version: 1.9
 Implementation-Vendor: 
-Built-By: keith.paterson
+Built-By: NB494$
 Specification-Vendor: Flightgear
-Build-Time: 07.12.2017 10:32 
-Build-Number: 39
+Build-Time: 18.02.2018 09:55 
+Build-Number: 40
 Class-Path: 
 
