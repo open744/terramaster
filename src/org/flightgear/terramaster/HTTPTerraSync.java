@@ -30,8 +30,6 @@ import javax.swing.SwingUtilities;
 import org.flightgear.terramaster.dns.FlightgearNAPTRQuery;
 import org.flightgear.terramaster.dns.WeightedUrl;
 
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
-
 /**
  * Implementation of the new TerraSync Version
  * 
