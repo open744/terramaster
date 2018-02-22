@@ -28,14 +28,12 @@ pipeline {
           bat 'git status'  
           bat "git add resources/build_info.properties"
             script{
-              def props = readProperties file: 'build_info.properties'
+              def props = readProperties file: 'resources/build_info.properties'
               def message = props['build.major.number'] + "." + props['build.minor.number'] 
               bat "git commit -m \"Version ${message}\""
               bat "git push ${env.GIT_URL}"
             }
-          bat 'git status'  
           //bat "git  -c core.askpass=true  push https://${env.GIT_USERNAME}:${env.GIT_PASSWORD}@github.com/Portree-Kid/terramaster.git#${env.GIT_BRANCH}"
-          bat 'git status'  
         }
         archiveArtifacts '*terramaster*.jar'    
       }
