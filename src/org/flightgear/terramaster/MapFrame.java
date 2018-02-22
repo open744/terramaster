@@ -5,6 +5,7 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -13,12 +14,12 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -31,9 +32,8 @@ import javax.swing.JProgressBar;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
+import javax.swing.border.EtchedBorder;
 import javax.swing.border.MatteBorder;
-import java.awt.Toolkit;
-import javax.swing.Icon;
 
 public class MapFrame extends JFrame {
 
@@ -182,8 +182,10 @@ private static final String SYNC = "SYNC";
       tileName = new JLabel();
       tileName.setHorizontalAlignment(SwingConstants.CENTER);
       tileName.setText("         ");
+      tileName.setBorder(BorderFactory.createBevelBorder(EtchedBorder.LOWERED));
       GridBagConstraints gbc_tileName = new GridBagConstraints();
-      gbc_tileName.anchor = GridBagConstraints.WEST;
+      gbc_tileName.ipady = 5;
+      gbc_tileName.ipadx = 5;
       gbc_tileName.insets = new Insets(0, 0, 5, 5);
       gbc_tileName.gridx = 0;
       gbc_tileName.gridy = 0;
