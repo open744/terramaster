@@ -26,7 +26,7 @@ pipeline {
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'github', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME']])
         {
           bat 'git status'  
-          bat "git add build_info.properties"
+          bat "git add resources/build_info.properties"
             script{
               def props = readProperties file: 'build_info.properties'
               def message = props['build.major.number'] + "." + props['build.minor.number'] 
