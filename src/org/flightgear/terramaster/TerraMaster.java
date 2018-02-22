@@ -219,7 +219,7 @@ public class TerraMaster {
 		}
 		Logger LOG = Logger.getLogger(TerraMaster.class.getCanonicalName());
 		try {
-			InputStream resourceAsStream = TerraMaster.class.getClassLoader().getResourceAsStream("build.number");
+			InputStream resourceAsStream = TerraMaster.class.getResourceAsStream("/build_info.properties");
 			if (resourceAsStream != null)
 				p.load(resourceAsStream);
 		} catch (Exception e1) {
@@ -241,7 +241,7 @@ public class TerraMaster {
 		} catch (IOException e) {
 			LOG.log(Level.WARNING, "Couldn't load properties : " + e.toString(), e);
 		}
-		LOG.info("Starting TerraMaster " + p.getProperty("build.number"));
+		LOG.info("Starting TerraMaster " + p.getProperty("build.major.number") + "." + p.getProperty("build.minor.number") + "_"+  p.getProperty("build.number")+ " " + p.getProperty("build.time"));
 
 		setTileService();
 
