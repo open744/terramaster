@@ -10,6 +10,10 @@
 	<description>
             Tool to manage Flightgear scenery
     </description>
+	
+	<tstamp>
+	      <format property="NOW" pattern="dd.MM.yyyy HH:mm:ss"  locale="en,UK" />
+	  </tstamp>
 
 	<!-- ================================= 
           target: default              
@@ -22,6 +26,9 @@
           target: depends                      
          - - - - - - - - - - - - - - - - - -->
 	<target name="compile">
+		<buildnumber file="resources/build_info.properties"/>
+		<propertyfile file="resources/build_info.properties"><entry key="build.time" value="${NOW}"/>
+		</propertyfile>
 		<mkdir dir="${basedir}/ant-bin" />
 		<copy todir="${basedir}/ant-bin">
 			<fileset dir="${basedir}">
@@ -40,20 +47,14 @@
 	<!-- - - - - - - - - - - - - - - - - - 
           target: jar                      
          - - - - - - - - - - - - - - - - - -->
-	<target name="jar" depends="compile">
-		<property file="version.properties"/>
-		<buildnumber />
-		<tstamp />
-		<tstamp>
-			<format property="build.time" pattern="dd.MM.yyyy hh:mm " />
-		</tstamp>
-		<manifest file="manifest" mode="update">
+	<target name="jar" depends=" compile, setbuildinfo">
+		<loadproperties srcfile="resources/build_info.properties" />
+		<manifest file="manifest">
 			<attribute name="Built-By" value="${user.name}" />
-			<attribute name="Specification-Version" value="${major.version}.${minor.version}" />
-			<attribute name="Implementation-Version" value="${major.version}.${minor.version}" />
-			<attribute name="Specification-Vendor" value="Flightgear" />
-			<attribute name="Build-Time" value="${build.time}" />
-			<attribute name="Build-Number" value="${build.number}" />
+			<attribute name="Main-Class" value="org.flightgear.terramaster.TerraMasterLauncher" />
+			<attribute name="Specification-Version" value="${build.major.number}.${build.minor.number}" />
+			<attribute name="Implementation-Version" value="${build.major.number}.${build.minor.number}" />
+			<attribute name="Specification-Vendor" value="Terramaster" />
 		</manifest>
 		<jar destfile="terramaster.jar" manifest="manifest">
 			<fileset dir="ant-bin">
@@ -82,16 +83,34 @@
 			</fileset>
 		</zip>
 	</target>
-	<!-- - - - - - - - - - - - - - - - - - 
-          target: bump_version                      
-         - - - - - - - - - - - - - - - - - -->
-    <target name="bump_version">
-		<propertyfile file="version.properties">
-			<entry key="minor.version" type="int" operation="+" value="1" />
-		</propertyfile>            
-    </target>
 
-	<target name="release" depends="bump_version, jar">
-        
+	<target name="setbuildinfo">
+		<propertyfile file="resources/build_info.properties">
+			<entry key="build.user" value="${user.name}" />
+		</propertyfile>
+	</target>
+
+	<target name="revision">
+		<echo>Revision</echo>
+		<propertyfile file="resources/build_info.properties">
+			<entry key="build.revision.number" type="int" operation="+" value="1" pattern="00" />
+		</propertyfile>
+		<antcall target="setbuildinfo" />
+	</target>
+
+	<target name="minor">
+		<echo>Minor</echo>
+		<propertyfile file="resources/build_info.properties">
+			<entry key="build.minor.number" type="int" operation="+" value="1" pattern="00" />
+		</propertyfile>
+		<antcall target="setbuildinfo" />
+	</target>
+
+	<target name="major">
+		<echo>Major</echo>
+		<propertyfile file="resources/build_info.properties">
+			<entry key="build.major.number" type="int" operation="+" value="1" pattern="0" />
+		</propertyfile>
+		<antcall target="setbuildinfo" />
 	</target>
 </project>
