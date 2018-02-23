@@ -25,7 +25,6 @@ pipeline {
         }
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'github', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME']])
         {
-          bat 'git status'  
           bat "git add resources/build_info.properties"
             script{
               def props = readProperties file: 'resources/build_info.properties'
@@ -44,12 +43,12 @@ pipeline {
         script{
             if (env.BRANCH_NAME == 'master') {
               withEnv(["SID=${env.sid}"]) {
-                  def props = readProperties file: 'build_info.properties'
+                  def props = readProperties file: 'resources/build_info.properties'
                   def message = props['build.major.number'] + "." + props['build.minor.number'] 
                    bat "C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t ${message}"
                    bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${message} -n terramaster.jar -f ${files}"""
                 }
-            archiveArtifacts '*terramaster*.jar'
+                archiveArtifacts '*terramaster*.jar'
             }
           }
         }
