@@ -63,21 +63,14 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller,
     checkURL();
   }
 
-  private synchronized void checkURL() {
-    if (urlBase != null)
-      return;
-    // 2015-12-28 use FG scenery server redirector
-    try {
-      char[] buf = new char[256];
-      new BufferedReader(new InputStreamReader(new java.net.URL(
-          "http://scenery.flightgear.org/svn-server").openStream())).read(buf,
-          0, 256);
-      urlBase = new String(buf).trim();
-      LOG.info("SVN server is " + urlBase);
-    } catch (IOException e) {
-      LOG.log(Level.WARNING, e.toString());
-    }
-  }
+	private synchronized void checkURL() {
+		if (urlBase != null)
+			return;
+		// 2015-12-28 use FG scenery server redirector
+		// 2017-03-10 redirector retired
+		urlBase = "http://ns334561.ip-5-196-65.eu:8888/trunk/data/Scenery/";
+		LOG.info("SVN server is " + urlBase);
+	}
 
   // this implements ISVNExternalsHandler
   public SVNRevision[] handleExternal(java.io.File externalPath,
@@ -304,6 +297,11 @@ class Svn extends Thread implements ISVNDirEntryHandler, ISVNCanceller,
   }
 
   public void sync(Collection<TileName> set, boolean ageCheck) {
+    if((new File(pathBase + "Terrain/"+set.toArray()[0]+"/.dirindex")).exists())
+    {
+      JOptionPane.showMessageDialog(TerraMaster.frame,"Don't Mix http Terrasync with SVN",
+          "Warning", JOptionPane.YES_NO_OPTION);      
+    }
     int res = JOptionPane.showConfirmDialog(TerraMaster.frame,
         "SVN is deprecated and you won't receive the most recent data." + System.getProperty("line.separator") + "Sync?",
         "Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
