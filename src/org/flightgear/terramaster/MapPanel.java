@@ -497,6 +497,12 @@ class MapPanel extends JPanel {
 		dragbox[3] = (int) -Math.ceil(p2.y);
 		selection = true;
 	}
+	
+	public void setSelection(Collection<TileName> selectionSet) {
+		this.selectionSet.clear();
+		this.selectionSet.addAll(selectionSet);
+		selection = true;
+	}
 
 	/**
 	 * returns union of selectionSet + dragbox
@@ -848,21 +854,21 @@ class MapPanel extends JPanel {
 		}
 		return j;
 	}
-
-	double greatCircleDistance(double lon1, double lat1, double lon2, double lat2) {
-		double dlat = Math.sin((lat2 - lat1) / 2);
-		double dlon = Math.sin((lon2 - lon1) / 2);
-		double r = Math.sqrt(dlat * dlat + Math.cos(lat1) * Math.cos(lat2) * dlon * dlon);
-		return 2.0 * Math.asin(r);
-	}
-
-	boolean inside(double lon, double lat) {
-		return greatCircleDistance(lon, lat, projectionLongitude, projectionLatitude) < mapRadius;
-	}
-
+	
+	/**
+	 * Projects the given point on the globe.
+	 * @param lam
+	 * @param phi
+	 * @param d
+	 */
+	
 	void project(double lam, double phi, Point2D.Double d) {
 		Point2D.Double s = new Point2D.Double(lam, phi);
 		pj.transformRadians(s, d);
+	}	
+
+	boolean inside(double lon, double lat) {
+		return CoordinateCalculation.oldHaversine(lat, lon, projectionLatitude, projectionLongitude) < mapRadius;
 	}
 
 	void passFrame(MapFrame f) {
