@@ -22,4 +22,6 @@ public interface TileService {
 	void setTypes(boolean selected, boolean selected2, boolean selected3);
 
 	void restoreSettings();
+
+  void wakeUp();
 }

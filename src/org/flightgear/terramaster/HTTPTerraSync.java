@@ -86,15 +86,19 @@ public class HTTPTerraSync extends Thread implements TileService {
 			}			
 			log.finest("Added " + tileName.getName() + " to queue");
 		}
-		synchronized (this) {
+		wakeUp();
+	}
+
+  public void wakeUp() {
+    synchronized (this) {
 			try {
-				notify();
+				this.notify();
 			} // wake up the main loop
 			catch (IllegalMonitorStateException e) {
 				log.log(Level.WARNING, e.toString(), e);
 			}
 		}
-	}
+  }
 
 
 	@Override
@@ -197,7 +201,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 				// update progressbar
 				invokeLater(EXTEND, syncList.size() * tilesize  + AIRPORT_MAX); // update
 				while (syncList.size() > 0) {
-					urls = new FlightgearNAPTRQuery().queryDNSServer("ws20");
+					urls = new FlightgearNAPTRQuery().queryDNSServer(TerraMaster.props.getProperty("SceneryVersion", "ws20"));
 					final TileName n;
 					synchronized (syncList) {
 						if (syncList.size() == 0)

@@ -36,6 +36,13 @@ public class WeightedUrl {
 	public void setUrl(URL url) {
 		this.url = url;
 	}
+	
+	/**
+	 * 
+	 * @param weight
+	 * @param regex The Regex to be used on the QName to get the URL
+	 * @param qName the QName to be regexed
+	 */
 
 	public WeightedUrl(String weight, String regex, DNSName qName) {
 		String[] tokens = regex.split("!");
