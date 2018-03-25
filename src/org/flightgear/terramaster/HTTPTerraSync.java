@@ -132,7 +132,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 		synchronized (syncList) {
 			syncList.clear();
 		}
-		(new Thread() {
+		(new Thread("Http Cancel Thread") {
 			@Override
 			public void run() {
 				try {
@@ -217,10 +217,10 @@ public class HTTPTerraSync extends Thread implements TileService {
 						else
 							syncModels();
 					} else {
-						// Updating Terrain/Objects
 						String path = n.buildPath();
 						if (path != null)
 							try {
+		            // Updating Terrain/Objects/Buildings
 								HashSet<String> apt2 = syncTile(path);
 								apt.addAll(apt2);
 							} catch (IOException e) {
@@ -451,7 +451,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 					return updates;
 				String localDirIndex = readDirIndex(path);
 				String[] localLines = localDirIndex.split("\r?\n");
-				if( !force && ageCheck && getDirIndexAge(path) > maxAge )
+				if( !force && ageCheck && getDirIndexAge(path) < maxAge )
 					return localLines.length;
 				URL dirIndexFileURL = new URL(baseUrl.toExternalForm() + path.replace("\\", "/") + "/.dirindex");
 				log.finest(dirIndexFileURL.toExternalForm());
