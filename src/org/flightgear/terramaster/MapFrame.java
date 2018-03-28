@@ -35,6 +35,9 @@ import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.MatteBorder;
+
+import org.flightgear.terramaster.gshhs.MapPoly;
+
 import javax.swing.Icon;
 
 public class MapFrame extends JFrame {

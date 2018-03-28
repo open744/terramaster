@@ -34,6 +34,8 @@ import java.util.regex.Pattern;
 import javax.swing.JPanel;
 import javax.swing.ToolTipManager;
 
+import org.flightgear.terramaster.gshhs.MapPoly;
+
 import com.jhlabs.map.proj.OrthographicAzimuthalProjection;
 import com.jhlabs.map.proj.Projection;
 import com.jhlabs.map.proj.WinkelTripelProjection;
@@ -45,6 +47,11 @@ import com.jhlabs.map.proj.WinkelTripelProjection;
 
 class MapPanel extends JPanel {
 
+  /**
+   * Converts a lat/lon point to screen coordinates
+   * @param n
+   * @return
+   */
 	private Point2D.Double screen2geo(Point n) {
 		Point s = new Point(n);
 		// s.y += getY();
@@ -701,6 +708,10 @@ class MapPanel extends JPanel {
 		}
 	}
 
+	/**
+	 * Shows the airports on the map
+	 * @param g0
+	 */
 	void showAirports(Graphics g0) {
 		if (TerraMaster.fgmap == null)
 			return;
@@ -748,8 +759,11 @@ class MapPanel extends JPanel {
 		return a;
 	}
 
-	// draws the landmass
-	// filter by rect region
+	/**
+	 * draws the landmass
+	 * filter by rect region
+	 * @param g
+	 */
 	void showLandmass_rect(Graphics g) {
 		Graphics2D g2 = (Graphics2D) g;
 		Color sea = new Color(0, 0, 64), land = new Color(64, 128, 0);
@@ -766,8 +780,8 @@ class MapPanel extends JPanel {
 		for (MapPoly s : poly) {
 			int a1, a2;
 			if (p1 != null && p2 != null) {
-				a1 = abrl(s.gshhsHeader.west, s.gshhsHeader.north, p1, p2);
-				a2 = abrl(s.gshhsHeader.east, s.gshhsHeader.south, p1, p2);
+				a1 = abrl(s.gshhsHeader.getWest(), s.gshhsHeader.getNorth(), p1, p2);
+				a2 = abrl(s.gshhsHeader.getEast(), s.gshhsHeader.getSouth(), p1, p2);
 				if (a1 != a2 || (a1 & a2) == 0) {
 					MapPoly d = convertPoly(s);
 					g2.setColor(s.level % 2 == 1 ? land : sea);
@@ -793,7 +807,7 @@ class MapPanel extends JPanel {
 		g2.clearRect(r.x, r.y, r.width, r.height);
 		g2.setTransform(affine);
 		for (MapPoly s : poly) {
-			if (s.gshhsHeader.n > 20 / Math.pow(2, fromMetres / 4)) {
+			if (s.gshhsHeader.getNumPoints() > 20 / Math.pow(2, fromMetres / 4)) {
 				MapPoly d = convertPoly(s);
 				g2.setColor(s.level % 2 == 1 ? land : sea);
 				if (d.npoints != 0)

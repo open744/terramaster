@@ -37,13 +37,15 @@ import java.util.regex.Pattern;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
+import org.flightgear.terramaster.gshhs.GshhsReader;
+import org.flightgear.terramaster.gshhs.MapPoly;
+
 public class TerraMaster {
   public static final String LOGGER_CATEGORY = "org.flightgear";
   Logger log = Logger.getLogger(LOGGER_CATEGORY);
   public static ArrayList<MapPoly> polys, borders;
 
   static MapFrame frame;
-  public GshhsHeader gshhsHeader;
 
   public static Map<TileName, TileData> mapScenery;
 
@@ -112,52 +114,6 @@ public class TerraMaster {
     return map;
   }
 
-  int readGshhsHeader(DataInput s, GshhsHeader h) {
-    int fl;
-    try {
-      h.id = s.readInt();
-      h.n = s.readInt(); // npoints
-      fl = s.readInt();
-      h.greenwich = (fl & 1 << 16) > 0 ? true : false;
-      h.level = (byte) (fl & 0xff);
-      h.west = s.readInt();
-      h.east = s.readInt();
-      h.south = s.readInt();
-      h.north = s.readInt();
-      h.area = s.readInt();
-      h.areaFull = s.readInt();
-      h.container = s.readInt();
-      h.ancestor = s.readInt();
-      return h.n;
-    } catch (Exception e) {
-      return -1;
-    }
-  }
-
-  // reads in GSHHS and builds ArrayList of polys
-
-  ArrayList<MapPoly> newPolyList(String filename) {
-
-    ArrayList<MapPoly> poly = new ArrayList<MapPoly>();
-
-    try {
-      DataInput s = new DataInputStream(
-          // new FileInputStream(filename));
-          getClass().getClassLoader().getResourceAsStream(filename));
-      int n = 0;
-      do {
-        GshhsHeader h = new GshhsHeader();
-        n = readGshhsHeader(s, h);
-        if (n > 0)
-          poly.add(new MapPoly(s, h));
-      } while (n > 0);
-    } catch (Exception e) {
-      log.log(Level.SEVERE, filename, e);
-    }
-
-    // System.out.format("%s: %d polys\n", filename, poly.size());
-    return poly;
-  }
 
   void createAndShowGUI() {
     // find our jar
@@ -183,8 +139,8 @@ public class TerraMaster {
      * worker_polys.execute(); worker_borders = new Worker<ArrayList<MapPoly>,
      * Void>("wdb_borders_l.b"); worker_borders.execute();
      */
-    polys = newPolyList("gshhs_l.b");
-    borders = newPolyList("wdb_borders_l.b");
+    polys = new GshhsReader().newPolyList("maps/gshhs_l.b");
+    borders = new GshhsReader().newPolyList("maps/wdb_borders_l.b");
     frame.passPolys(polys);
     frame.passBorders(borders);
     frame.addWindowListener(new WindowAdapter() {
