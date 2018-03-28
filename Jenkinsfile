@@ -6,14 +6,17 @@ pipeline {
   stages {
     stage('version') {
         steps{
-          if (env.BRANCH_NAME == 'master') {
+          script{
+                     if (env.BRANCH_NAME == 'master') {
             bat 'git config --global credential.helper cache'
             git credentialsId: 'github', url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
             script{
               def props = readProperties file: 'resources/build_info.properties'
               def message = props['build.major.number'] + "." + props['build.minor.number'] 
               //Pipe through tee to get rid of errorlevel
-              result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s 52c8c0d920a37575dad99f2a36e988b2b7580295 -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
+              withEnv(["SID=${env.sid}"]) {
+                result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
+              }
               if( result.trim().indexOf("could not find the release corresponding") < 0 ){
                     withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
                       withAnt('installation' : 'apache-ant-1.10.1') {
@@ -23,6 +26,8 @@ pipeline {
                  }
             }            
         }
+              
+          }
       }
     }
 
