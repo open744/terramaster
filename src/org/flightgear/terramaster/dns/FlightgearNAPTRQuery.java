@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,7 +46,9 @@ public class FlightgearNAPTRQuery {
 	Logger log = Logger.getLogger(TerraMaster.LOGGER_CATEGORY);
 
 	private List<WeightedUrl> urls = new ArrayList<>();
-	private static final String TERRASYNC_SERVERS = "nameservers.bin";
+
+  private String[] versions;
+	private static final String TERRASYNC_SERVERS_FILE = "nameservers.bin";
 
 
 	/**
@@ -171,10 +174,12 @@ public class FlightgearNAPTRQuery {
 							index++;
 							count--;
 						} while (index < len);
+						//Retrieve the URLs
 						urls = getUrls(hostRecords, sceneryType, qName);
+						setVersions(getSceneryTypes(hostRecords));
 						if (urls.size() > 0) {
 							// We have some servers so we can return
-							return urls;
+							break;
 						}
 					} else if (rcode == DNSMsgHeader.NOERROR) {
 						boolean found = false;
@@ -384,14 +389,30 @@ public class FlightgearNAPTRQuery {
 			}
 		}
 		if (!urls.isEmpty()) {
-			storeURLs();
+			storeData();
 		} else {
-			readURLs();
+			readData();
 		}
 		return urls;
 	}
 	
-	private void refresh() {
+	/**
+	 * Parses out the available Sceneries ws20, ws21, ...
+	 * @param hostRecords
+	 * @return
+	 */
+	
+	private String[] getSceneryTypes(ArrayList<Object[]> hostRecords) {
+    TreeSet<String> types = new TreeSet<>();
+    Collections.sort(hostRecords, new NAPTRComparator());
+    long order = -1;
+    for (Object[] record : hostRecords) {
+      types.add(record[3].toString());
+    }
+    return types.toArray(new String[types.size()]);
+  }
+
+  private void refresh() {
 		try {
 			Method declaredMethod = sun.net.dns.ResolverConfigurationImpl.class.getDeclaredMethod("loadDNSconfig0");
 			declaredMethod.setAccessible(true);
@@ -425,10 +446,12 @@ public class FlightgearNAPTRQuery {
 	}
 
 
-	private void readURLs() {
+	private void readData() {
 		try {
-			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(TERRASYNC_SERVERS));
+			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(TERRASYNC_SERVERS_FILE));
 			urls = (List<WeightedUrl>) ois.readObject();
+			versions = (String[]) ois.readObject();
+      ois.close();
 		} catch (IOException e1) {
 			log.log(Level.WARNING, e1.getMessage(), e1);
 		} catch (ClassNotFoundException e) {
@@ -437,17 +460,28 @@ public class FlightgearNAPTRQuery {
 	}
 
 
-	private void storeURLs() {
+	private void storeData() {
 		try {
-			ObjectOutputStream ois = new ObjectOutputStream(new FileOutputStream(TERRASYNC_SERVERS));
+			ObjectOutputStream ois = new ObjectOutputStream(new FileOutputStream(TERRASYNC_SERVERS_FILE));
 			ArrayList<String> s = new ArrayList<>();
 			for (WeightedUrl url : urls) {
 				s.add(url.toString());
 			}
 			ois.writeObject(s);
+			ois.writeObject(versions);
+			ois.flush();
+			ois.close();
 		} catch (IOException e1) {
 			log.log(Level.WARNING, e1.getMessage(), e1);
 		}
 	}
+
+  public String[] getVersions() {
+    return versions;
+  }
+
+  public void setVersions(String[] versions) {
+    this.versions = versions;
+  }
 
 }
