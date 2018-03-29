@@ -194,6 +194,11 @@ public class TerraMaster {
         Logger.getLogger(TerraMaster.LOGGER_CATEGORY).setLevel(Level.parse(props.getProperty("LogLevel")));
         Logger.getGlobal().getParent().setLevel(Level.INFO);
       }
+      else {
+        Logger.getGlobal().getParent().setLevel(Level.INFO);
+        Logger.getLogger(TerraMaster.LOGGER_CATEGORY).setLevel(Level.INFO);
+        Logger.getGlobal().getParent().setLevel(Level.INFO);        
+      }
     } catch (IOException e) {
       LOG.log(Level.WARNING, "Couldn't load properties : " + e.toString(), e);
     }
