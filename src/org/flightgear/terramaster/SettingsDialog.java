@@ -323,7 +323,7 @@ public class SettingsDialog extends JDialog {
       TerraMaster.props.setProperty(TerraSyncDirectoryTypes.BUILDINGS.name(),
           Boolean.toString(chckbxBuildings.isSelected()));
       TerraMaster.props.setProperty("MaxTileAge", "" + (Integer.parseInt(tileage.getText()) * 24 * 3600));
-      TerraMaster.props.setProperty("SceneryVersion", "ws20");
+      TerraMaster.props.setProperty("SceneryVersion", cmbSceneryVersion.getSelectedItem().toString());
       TerraMaster.setTileService();
     } catch (Exception x) {
       x.printStackTrace();
