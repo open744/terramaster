@@ -35,6 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import org.flightgear.terramaster.gshhs.GshhsReader;
@@ -152,6 +153,7 @@ public class TerraMaster {
           props.store(new FileWriter("terramaster.properties"), null);
         } catch (Exception x) {
           log.log(Level.WARNING, "Couldn't store settings", e);
+          JOptionPane.showMessageDialog(frame, "Couldn't store Properties " + x.toString(), "Error", JOptionPane.ERROR_MESSAGE );
         }
         log.info("Shut down Terramaster");
       }
