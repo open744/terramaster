@@ -173,6 +173,7 @@ public class SettingsDialog extends JDialog {
             for (String version : query.getVersions()) {
               cmbSceneryVersion.addItem(version);              
             }
+            restoreValues();
           }
         }).start();
 
