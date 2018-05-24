@@ -457,10 +457,12 @@ public class MapFrame extends JFrame {
 	public void setVisible(boolean b) {
 		super.setVisible(b);
 		if (b && TerraMaster.mapScenery == null) {
+		  //FIXME Logging
 			JOptionPane.showMessageDialog(this,
 					"Scenery folder not found. Click the gear icon and select the folder containing your scenery files.",
 					"Warning", JOptionPane.WARNING_MESSAGE);
 		} else if (b && TerraMaster.mapScenery.isEmpty()) {
+      //FIXME Logging
 			JOptionPane.showMessageDialog(this, "Scenery folder is empty.", "Warning", JOptionPane.WARNING_MESSAGE);
 		}
 	}

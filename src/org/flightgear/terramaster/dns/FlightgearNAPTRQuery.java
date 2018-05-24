@@ -61,7 +61,7 @@ public class FlightgearNAPTRQuery {
 	
 	public List<WeightedUrl> queryDNSServer(String sceneryType) {
 		refresh();
-		if (urls.size() > 0)
+		if (!urls.isEmpty())
 			return urls;
 		int index, len = 0, rcode, count = 0;
 		boolean isZone = false, isNS = false, isPlain = false;
@@ -177,7 +177,7 @@ public class FlightgearNAPTRQuery {
 						//Retrieve the URLs
 						urls = getUrls(hostRecords, sceneryType, qName);
 						setVersions(getSceneryTypes(hostRecords));
-						if (urls.size() > 0) {
+						if (!urls.isEmpty()) {
 							// We have some servers so we can return
 							break;
 						}
@@ -391,6 +391,7 @@ public class FlightgearNAPTRQuery {
 		if (!urls.isEmpty()) {
 			storeData();
 		} else {
+		  log.fine("Didn't get DNS Records, reading dump");
 			readData();
 		}
 		return urls;
@@ -453,9 +454,9 @@ public class FlightgearNAPTRQuery {
 			versions = (String[]) ois.readObject();
       ois.close();
 		} catch (IOException e1) {
-			log.log(Level.WARNING, e1.getMessage(), e1);
+			log.log(Level.WARNING, e1.toString(), e1);
 		} catch (ClassNotFoundException e) {
-			log.log(Level.WARNING, e.getMessage(), e);
+			log.log(Level.WARNING, e.toString(), e);
 		}
 	}
 
@@ -463,16 +464,12 @@ public class FlightgearNAPTRQuery {
 	private void storeData() {
 		try {
 			ObjectOutputStream ois = new ObjectOutputStream(new FileOutputStream(TERRASYNC_SERVERS_FILE));
-			ArrayList<String> s = new ArrayList<>();
-			for (WeightedUrl url : urls) {
-				s.add(url.toString());
-			}
-			ois.writeObject(s);
+			ois.writeObject(urls);
 			ois.writeObject(versions);
 			ois.flush();
 			ois.close();
 		} catch (IOException e1) {
-			log.log(Level.WARNING, e1.getMessage(), e1);
+			log.log(Level.WARNING, e1.toString(), e1);
 		}
 	}
 

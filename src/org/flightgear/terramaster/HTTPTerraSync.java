@@ -201,7 +201,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 				// update progressbar
 				invokeLater(EXTEND, syncList.size() * tilesize  + AIRPORT_MAX); // update
 				while (syncList.size() > 0) {
-					urls = new FlightgearNAPTRQuery().queryDNSServer(TerraMaster.props.getProperty("SceneryVersion", "ws20"));
+					urls = (new FlightgearNAPTRQuery()).queryDNSServer(TerraMaster.props.getProperty("SceneryVersion", "ws20"));
 					final TileName n;
 					synchronized (syncList) {
 						if (syncList.size() == 0)
