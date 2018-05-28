@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -14,6 +15,7 @@ import java.util.logging.Logger;
 import org.flightgear.terramaster.TerraMaster;
 import org.flightgear.terramaster.dns.FlightgearNAPTRQuery;
 import org.flightgear.terramaster.dns.WeightedUrl;
+import org.flightgear.terramaster.dns.FlightgearNAPTRQuery.HealthStats;
 import org.junit.Test;
 import org.mockito.internal.util.reflection.Whitebox;
 
@@ -58,6 +60,9 @@ public class TestNAPTRQuery {
     Whitebox.setInternalState(q2, "urls", new ArrayList<>());
     List<String> timeOutServers = new ArrayList<>();
     timeOutServers.add("72.66.115.13");
+    HashMap<String, HealthStats> stats = new HashMap<>();
+    stats.put("72.66.115.13", q2.new HealthStats("72.66.115.13"));
+    Whitebox.setInternalState(q2, "stats", stats);    
     when(q2.getNameservers()).thenReturn(timeOutServers); // Mock implementation
     when(q2.queryDNSServer("ws20")).thenCallRealMethod();
     List<WeightedUrl> server2 = q2.queryDNSServer("ws20");
