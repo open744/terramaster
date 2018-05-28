@@ -34,7 +34,7 @@ pipeline {
         git credentialsId: 'github', url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
         withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
           withAnt('installation' : 'apache-ant-1.10.1') {
-            bat "ant default"
+            bat "mvn clean install"
           }
         }  
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'github', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME']])

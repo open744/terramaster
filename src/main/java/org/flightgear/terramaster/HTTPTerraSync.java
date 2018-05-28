@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,6 +29,7 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import org.flightgear.terramaster.dns.FlightgearNAPTRQuery;
+import org.flightgear.terramaster.dns.FlightgearNAPTRQuery.HealthStats;
 import org.flightgear.terramaster.dns.WeightedUrl;
 
 /**
@@ -200,8 +202,9 @@ public class HTTPTerraSync extends Thread implements TileService {
 				int tilesize = (terrain?DIR_SIZE:0) + (objects?DIR_SIZE:0) + (buildings?2000:0);
 				// update progressbar
 				invokeLater(EXTEND, syncList.size() * tilesize  + AIRPORT_MAX); // update
+        FlightgearNAPTRQuery flightgearNAPTRQuery = new FlightgearNAPTRQuery();
 				while (syncList.size() > 0) {
-					urls = (new FlightgearNAPTRQuery()).queryDNSServer(TerraMaster.props.getProperty("SceneryVersion", "ws20"));
+          urls = flightgearNAPTRQuery.queryDNSServer(TerraMaster.props.getProperty(TerraMasterProperties.SCENERY_VERSION, "ws20"));
 					final TileName n;
 					synchronized (syncList) {
 						if (syncList.size() == 0)
@@ -240,6 +243,14 @@ public class HTTPTerraSync extends Thread implements TileService {
 					}
 				}
 
+				int errors = 0;
+				for (Entry<String, HealthStats> entry : flightgearNAPTRQuery.getStats().entrySet()) {
+          HealthStats stats = entry.getValue();
+          log.fine(stats.toString());
+          errors += stats.errors;
+        }
+        if(errors>0)
+          JOptionPane.showMessageDialog(null, "There where errors in DNS queries. Consider enabling 8.8.8.8 or 9.9.9.9 in settings", "DNS Error", JOptionPane.WARNING_MESSAGE);
 				// syncList is now empty
 				invokeLater(RESET, 0); // reset progressBar
 			}
