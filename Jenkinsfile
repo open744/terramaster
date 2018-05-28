@@ -33,7 +33,7 @@ pipeline {
         bat 'git config --global credential.helper cache'
         git credentialsId: 'github', url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
         withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
-          withMaven {
+          withMaven(maven: 'Maven 3.5.3') {
             bat "mvn clean install"
           }                   
         }  
