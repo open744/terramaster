@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 import org.flightgear.terramaster.TerraMaster;
@@ -20,6 +21,7 @@ public class TestNAPTRQuery {
 
   @Test
   public void testGet() {
+    TerraMaster.props = new Properties();
     FlightgearNAPTRQuery q = new FlightgearNAPTRQuery();
     List<WeightedUrl> server = q.queryDNSServer("ws20");
     assertNotNull(server);
@@ -28,6 +30,7 @@ public class TestNAPTRQuery {
 
   @Test
   public void testReadWrite() {
+    TerraMaster.props = new Properties();
     FlightgearNAPTRQuery q = new FlightgearNAPTRQuery();
     List<WeightedUrl> server = q.queryDNSServer("ws20");
     assertNotNull(server);
@@ -40,6 +43,7 @@ public class TestNAPTRQuery {
 
   @Test
   public void testOutage() {
+    TerraMaster.props = new Properties();
     FlightgearNAPTRQuery q = new FlightgearNAPTRQuery();
     List<WeightedUrl> server = q.queryDNSServer("ws20");
     assertNotNull(server);
