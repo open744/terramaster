@@ -75,13 +75,10 @@ pipeline {
             }
           }              
      }
-     stage('Collect'){
-     post {
-        always {
-            junit 'target/**/*.xml'
-        }
-    }         
-     }
-
   }
+ post {
+    always {
+        junit 'target/**/*.xml'
+    }
+ }
 }
