@@ -9,7 +9,7 @@ pipeline {
           script{
             if (env.BRANCH_NAME == 'master') {
                 script{
-                  def props = readProperties file: 'resources/build_info.properties'
+                  def props = readProperties file: 'src/main/resources/build_info.properties'
                   def message = props['build.major.number'] + "." + props['build.minor.number'] 
                   //Pipe through tee to get rid of errorlevel
                   withEnv(["SID=${env.sid}"]) {
@@ -39,9 +39,9 @@ pipeline {
         }  
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'github', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME']])
         {
-            bat "git add resources/build_info.properties"
+            bat "git add src/main/resources/build_info.properties"
             script{
-              def props = readProperties file: 'resources/build_info.properties'
+              def props = readProperties file: 'src/main/resources/build_info.properties'
               def message = props['build.major.number'] + "." + props['build.minor.number'] + "_" + props['build.number']
               bat "git commit -m \"Build ${message} \""
               bat "git push ${env.GIT_URL}"
@@ -56,7 +56,7 @@ pipeline {
       steps{
         script{
             if (env.BRANCH_NAME == 'master') {
-                def props = readProperties file: 'resources/build_info.properties'
+                def props = readProperties file: 'src/main/resources/build_info.properties'
                 def message = props['build.major.number'] + "." + props['build.minor.number'] 
                   //Pipe through tee to get rid of errorlevel
                   withEnv(["SID=${env.sid}"]) {
@@ -75,5 +75,10 @@ pipeline {
             }
           }              
      }
+     post {
+        always {
+            junit 'build/reports/**/*.xml'
+        }
+    }
   }
 }
