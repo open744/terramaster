@@ -30,24 +30,11 @@ pipeline {
 
     stage( 'build' ) {
       steps{
-        bat 'git config --global credential.helper cache'
-        git credentialsId: 'github', url: "${env.GIT_URL}", branch: "${env.GIT_BRANCH}"
         withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
           withMaven(maven: 'Maven 3.5.3') {
             bat "mvn clean install"
           }                   
         }  
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'github', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME']])
-        {
-            bat "git add src/main/resources/build_info.properties"
-            script{
-              def props = readProperties file: 'src/main/resources/build_info.properties'
-              def message = props['build.major.number'] + "." + props['build.minor.number'] + "_" + props['build.number']
-              bat "git commit -m \"Build ${message} \""
-              bat "git push ${env.GIT_URL}"
-            }
-          //bat "git  -c core.askpass=true  push https://${env.GIT_USERNAME}:${env.GIT_PASSWORD}@github.com/Portree-Kid/terramaster.git#${env.GIT_BRANCH}"
-        }
         archiveArtifacts '*terramaster*.jar'    
       }
     }
