@@ -9,8 +9,8 @@ pipeline {
           script{
             if (env.BRANCH_NAME == 'master') {
                 script{
-                  def props = readProperties file: 'src/main/resources/build_info.properties'
-                  def message = props['build.major.number'] + "." + props['build.minor.number'] 
+                  def props = readProperties file: 'target/maven-archiver/pom.properties'
+                  def message = props['version'] 
                   //Pipe through tee to get rid of errorlevel
                   withEnv(["SID=${env.sid}"]) {
                     result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
@@ -43,29 +43,29 @@ pipeline {
       steps{
         script{
             if (env.BRANCH_NAME == 'master') {
-                def props = readProperties file: 'src/main/resources/build_info.properties'
-                def message = props['build.major.number'] + "." + props['build.minor.number'] 
+                def props = readProperties file: 'target/maven-archiver/pom.properties'
+                def message = props['version'] 
                   //Pipe through tee to get rid of errorlevel
-                  withEnv(["SID=${env.sid}"]) {
-                    result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
-                  }
-                  if( result.trim().indexOf("could not find the release corresponding") < 0 ){
-                    withEnv(["SID=${env.sid}"]) {
-                      bat "C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t ${message}"
-                    }
-                  }
-                }            
                 withEnv(["SID=${env.sid}"]) {
-                   bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${message} -n terramaster.jar -f ${files}"""
+                    result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
                 }
-                archiveArtifacts '*terramaster*.jar'
+                if( result.trim().indexOf("could not find the release corresponding") < 0 ){
+                    withEnv(["SID=${env.sid}"]) {
+                        bat "C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t ${message}"
+                    }
+                }                            
+                withEnv(["SID=${env.sid}"]) {
+                    bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${message} -n terramaster.jar -f ${files}"""
+                }
             }
-          }              
+            archiveArtifacts '*terramaster*.jar'
+          }
+        }              
      }
   }
  post {
     always {
-        junit 'target/**/*.xml'
+        junit 'target/surefire-reports/*.xml'
     }
  }
 }
