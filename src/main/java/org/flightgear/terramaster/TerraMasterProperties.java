@@ -14,5 +14,6 @@ public interface TerraMasterProperties {
   static final String DNS_GCA = "DNS_GCA";
   static final String MAX_TILE_AGE = "MaxTileAge";
   String SCENERY_VERSION = "SceneryVersion";
+  String DEFAULT_SCENERY_VERSION = "ws20";
 
 }

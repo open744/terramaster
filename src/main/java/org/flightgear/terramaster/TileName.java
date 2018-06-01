@@ -1,6 +1,8 @@
 package org.flightgear.terramaster;
-// convenience methods for converting between
-// lat,lon and "e000s00" formats
+/** 
+ * convenience methods for converting between
+ * lat,lon and "e000s00" formats
+ */
 
 import java.awt.geom.Point2D;
 import java.util.*;
@@ -12,7 +14,7 @@ public class TileName implements Comparable<TileName> {
 
 	private static Hashtable<String, TileName> tilenameMap;
 	
-	// creates a hashtable of all possible 1x1 tiles in the world
+	/** creates a hashtable of all possible 1x1 tiles in the world*/
 	static{
 		tilenameMap = new Hashtable<String, TileName>();
 
@@ -67,7 +69,7 @@ public class TileName implements Comparable<TileName> {
 		return computeTileName((int) -Math.ceil(p.y), (int) Math.floor(p.x));
 	}
 
-	// W and S are negative
+	/** W and S are negative*/
 	public static String computeTileName(int lat, int lon) {
 		char ew = 'e', ns = 'n';
 

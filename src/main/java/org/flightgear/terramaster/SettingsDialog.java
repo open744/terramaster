@@ -172,7 +172,7 @@ public class SettingsDialog extends JDialog {
           @Override
           public void run() {
             FlightgearNAPTRQuery query = new FlightgearNAPTRQuery();
-            query.queryDNSServer(TerraMaster.props.getProperty(TerraMasterProperties.SCENERY_VERSION, "ws20"));
+            query.queryDNSServer(TerraMaster.props.getProperty(TerraMasterProperties.SCENERY_VERSION, TerraMasterProperties.DEFAULT_SCENERY_VERSION));
             
             for (String version : query.getVersions()) {
               cmbSceneryVersion.addItem(version);              
@@ -339,8 +339,8 @@ public class SettingsDialog extends JDialog {
 
     cmbLogLevel.setSelectedItem(root.getLevel());
     tileage.setText("" + (Integer.parseInt(TerraMaster.props.getProperty(TerraMasterProperties.MAX_TILE_AGE, "100")) / (24 * 3600)));
-    cmbSceneryVersion.addItem(TerraMaster.props.getProperty(TerraMasterProperties.SCENERY_VERSION, "ws20"));
-    cmbSceneryVersion.setSelectedItem(TerraMaster.props.getProperty(TerraMasterProperties.SCENERY_VERSION, "ws20"));
+    cmbSceneryVersion.addItem(TerraMaster.props.getProperty(TerraMasterProperties.SCENERY_VERSION, TerraMasterProperties.DEFAULT_SCENERY_VERSION));
+    cmbSceneryVersion.setSelectedItem(TerraMaster.props.getProperty(TerraMasterProperties.SCENERY_VERSION, TerraMasterProperties.DEFAULT_SCENERY_VERSION));
     checkBoxGoogle.setSelected(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraMasterProperties.DNS_GOOGLE, "false")));
     checkBoxGCA.setSelected(Boolean.parseBoolean(TerraMaster.props.getProperty(TerraMasterProperties.DNS_GCA, "false")));
   }

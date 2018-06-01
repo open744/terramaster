@@ -674,7 +674,7 @@ public class HTTPTerraSync extends Thread implements TileService {
 		objects = Boolean.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.OBJECTS.name(), "true"));
 		buildings = Boolean
 				.parseBoolean(TerraMaster.props.getProperty(TerraSyncDirectoryTypes.BUILDINGS.name(), "false"));
-		maxAge = Long.parseLong(TerraMaster.props.getProperty("MaxTileAge", "" + 0));
+		maxAge = Long.parseLong(TerraMaster.props.getProperty(TerraMasterProperties.MAX_TILE_AGE, "0"));
 		
 	}
 
