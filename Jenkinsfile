@@ -28,14 +28,16 @@ pipeline {
 
     stage( 'build' ) {
       steps{
-        withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
-          withMaven(maven: 'Maven 3.5.3') {
-            bat "mvn clean install"
-          }                   
-        }  
-        archiveArtifacts '*terramaster*.jar'    
-      }
-    }
+            if (env.BRANCH_NAME != 'master') {
+                withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
+                  withMaven(maven: 'Maven 3.5.3') {
+                    bat "mvn clean install"
+                  }                   
+                }  
+                archiveArtifacts '*terramaster*.jar'    
+             }              
+           }
+        }
     
     stage( 'deploy' ) {
       steps{
