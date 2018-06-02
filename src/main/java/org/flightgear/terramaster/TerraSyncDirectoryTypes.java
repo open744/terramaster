@@ -1,6 +1,12 @@
 package org.flightgear.terramaster;
 import java.io.File;
 
+/**
+ * The subdirectories that TerraMaster supports in the directory. 
+ * @author keith.paterson
+ *
+ */
+
 public enum TerraSyncDirectoryTypes {
 
   TERRAIN("Terrain", 0), OBJECTS("Objects", 1), MODELS("Models",

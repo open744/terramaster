@@ -181,16 +181,16 @@ public class AboutDialog extends JDialog {
 
 	private void loadVersion() {
 		try {
-			InputStream is = getClass().getResourceAsStream("/build_info.properties");
+		  
+			InputStream is = getClass().getResourceAsStream("/META-INF/maven/org.flightgear/terramaster/pom.properties");
 			Properties props = new Properties();
 			props.load(is);
 //			build.minor.number=10
 //		    build.major.number=1
-			String v = props.getProperty("build.major.number") + "." + props.getProperty("build.minor.number") ;
+			String v = props.getProperty("version");
 			lblV.setText(v);
-			lblV.setToolTipText(props.getProperty("build.time"));
 		} catch (Exception e) {
-			// TODO: handle exception
+		  log.log(Level.WARNING, e.toString(),e);
 		}
 	}
 }
