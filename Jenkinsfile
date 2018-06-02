@@ -16,9 +16,11 @@ pipeline {
                     result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
                   }
                   if( props.size() == 0 || result.trim().indexOf("could not find the release corresponding") < 0 ) {
+                    withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
                       withMaven(maven: 'Maven 3.5.3') {
-                        bat "mvn release:prepare"
+                            bat "mvn release:prepare"
                       }                   
+                    }  
                   }            
                 }              
              }
@@ -50,9 +52,11 @@ pipeline {
                 def props = readProperties file: 'target/maven-archiver/pom.properties'
                 def message = props['version'] 
 
-                withMaven(maven: 'Maven 3.5.3') {
-                  bat "mvn release:perform"
-                }                   
+                withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
+                  withMaven(maven: 'Maven 3.5.3') {
+                    bat "mvn release:perform"
+                  }                   
+                }  
                   //Pipe through tee to get rid of errorlevel
                 withEnv(["SID=${env.sid}"]) {
                     result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
