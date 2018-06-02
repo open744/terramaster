@@ -8,24 +8,22 @@ pipeline {
         steps{
           script{
             if (env.BRANCH_NAME == 'master') {
-                script{
+                script {
                   def props = readProperties file: 'target/maven-archiver/pom.properties'
                   def message = props['version'] 
                   //Pipe through tee to get rid of errorlevel
                   withEnv(["SID=${env.sid}"]) {
                     result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
                   }
-                  if( result.trim().indexOf("could not find the release corresponding") < 0 ){
-                        withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
-                          withAnt('installation' : 'apache-ant-1.10.1') {
-                            bat "ant minor"
-                          }
-                        }  
-                     }
-                }            
-            }              
-         }
-      }
+                  if( result.trim().indexOf("could not find the release corresponding") < 0 ) {
+                      withMaven(maven: 'Maven 3.5.3') {
+                        bat "mvn release:prepare"
+                      }                   
+                  }            
+                }              
+             }
+          }
+        }
     }
 
     stage( 'build' ) {
@@ -42,14 +40,19 @@ pipeline {
     stage( 'deploy' ) {
       steps{
         script{
+            echo env.BRANCH_NAME
             if (env.BRANCH_NAME == 'master') {
                 def props = readProperties file: 'target/maven-archiver/pom.properties'
                 def message = props['version'] 
+
+                withMaven(maven: 'Maven 3.5.3') {
+                  bat "mvn release:perform"
+                }                   
                   //Pipe through tee to get rid of errorlevel
                 withEnv(["SID=${env.sid}"]) {
                     result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
                 }
-                if( result.trim().indexOf("could not find the release corresponding") < 0 ){
+                if( result.trim().indexOf("could not find the release corresponding") < 0 ) {
                     withEnv(["SID=${env.sid}"]) {
                         bat "C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t ${message}"
                     }
@@ -63,9 +66,9 @@ pipeline {
         }              
      }
   }
- post {
+  post {
     always {
         junit 'target/surefire-reports/*.xml'
     }
- }
+  }
 }
