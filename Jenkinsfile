@@ -15,7 +15,7 @@ pipeline {
                   withEnv(["SID=${env.sid}"]) {
                     result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
                   }
-                  if( props.size() == 0 || result.trim().indexOf("could not find the release corresponding") < 0 ) {
+                  if( props.size() == 0 || result.trim().indexOf("could not find the release corresponding") > 0 ) {
                     withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
                       withMaven(maven: 'Maven 3.5.3') {
                             bat "mvn release:prepare"
