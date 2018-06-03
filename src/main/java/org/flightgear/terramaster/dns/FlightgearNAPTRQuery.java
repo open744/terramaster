@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -100,6 +101,14 @@ public class FlightgearNAPTRQuery {
     // Get the system dns
 
     List<String> nameservers = getNameservers();
+    
+    Collections.sort(nameservers, new Comparator<String>() {
+
+      @Override
+      public int compare(String o1, String o2) {
+        return Integer.compare(stats.get(o1).errors, stats.get(o2).errors) ;
+      }
+    });
 
     for (String serverName : nameservers) {
       try {
@@ -427,6 +436,9 @@ public class FlightgearNAPTRQuery {
 
   public List<String> getNameservers() {
     ResolverConfiguration config = sun.net.dns.ResolverConfiguration.open();
+    
+    Field[] f = config.getClass().getDeclaredFields();
+   
     List<String> nameservers = config.nameservers();    
     
     if( Boolean.parseBoolean(TerraMaster.props.getProperty(TerraMasterProperties.DNS_GOOGLE, "false")) || 

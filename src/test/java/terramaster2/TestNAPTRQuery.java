@@ -13,6 +13,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 import org.flightgear.terramaster.TerraMaster;
+import org.flightgear.terramaster.TerraMasterProperties;
 import org.flightgear.terramaster.dns.FlightgearNAPTRQuery;
 import org.flightgear.terramaster.dns.WeightedUrl;
 import org.flightgear.terramaster.dns.FlightgearNAPTRQuery.HealthStats;
@@ -24,6 +25,26 @@ public class TestNAPTRQuery {
   @Test
   public void testGet() {
     TerraMaster.props = new Properties();
+    FlightgearNAPTRQuery q = new FlightgearNAPTRQuery();
+    List<WeightedUrl> server = q.queryDNSServer("ws20");
+    assertNotNull(server);
+    assertNotEquals(0, server.size());
+  }
+
+  @Test
+  public void testGoogle() {
+    TerraMaster.props = new Properties();
+    TerraMaster.props.setProperty(TerraMasterProperties.DNS_GOOGLE, "true");    
+    FlightgearNAPTRQuery q = new FlightgearNAPTRQuery();
+    List<WeightedUrl> server = q.queryDNSServer("ws20");
+    assertNotNull(server);
+    assertNotEquals(0, server.size());
+  }
+
+  @Test
+  public void testGCA() {
+    TerraMaster.props = new Properties();
+    TerraMaster.props.setProperty(TerraMasterProperties.DNS_GCA, "true");    
     FlightgearNAPTRQuery q = new FlightgearNAPTRQuery();
     List<WeightedUrl> server = q.queryDNSServer("ws20");
     assertNotNull(server);
