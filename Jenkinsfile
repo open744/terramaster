@@ -71,13 +71,10 @@ pipeline {
                   //Pipe through tee to get rid of errorlevel
                 withEnv(["SID=${env.sid}"]) {
                     result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${tag} 2>&1 | tee").trim()
-                }
-                if( result.trim().indexOf("could not find the release corresponding") < 0 ) {
-                    withEnv(["SID=${env.sid}"]) {
-                        bat "C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t ${tag}"
-                    }
-                }                            
-                withEnv(["SID=${env.sid}"]) {
+                    echo "${result} " + result.trim().indexOf("could not find the release corresponding")
+                    if( result.trim().indexOf("could not find the release corresponding") < 0 ) {
+                      bat "C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t ${tag}"
+                    }                            
                     bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${tag} -l ${version} -n ${tag}.jar -f target/${tag}.jar"""
                 }
             }
