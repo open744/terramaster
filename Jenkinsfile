@@ -72,7 +72,7 @@ pipeline {
                 withEnv(["SID=${env.sid}"]) {
                     result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${tag} 2>&1 | tee").trim()
                     echo "${result} " + result.trim().indexOf("could not find the release corresponding")
-                    if( result.trim().indexOf("could not find the release corresponding") < 0 ) {
+                    if( result.trim().indexOf("could not find the release corresponding") > 0 ) {
                       bat "C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t ${tag}"
                     }                            
                     bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${tag} -l ${version} -n ${tag}.jar -f target/${tag}.jar"""
