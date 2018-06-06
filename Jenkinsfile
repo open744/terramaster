@@ -25,6 +25,7 @@ pipeline {
                           withMaven(maven: 'Maven 3.5.3') {
                                 bat "mvn release:rollback"
                           }
+                          error("Release-Prepare failed")
                       }
                     }  
                   }            
