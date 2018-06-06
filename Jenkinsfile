@@ -74,7 +74,7 @@ pipeline {
                 }
                 if( result.trim().indexOf("could not find the release corresponding") < 0 ) {
                     withEnv(["SID=${env.sid}"]) {
-                        bat "C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t ${message}"
+                        bat "C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t ${tag}"
                     }
                 }                            
                 withEnv(["SID=${env.sid}"]) {
