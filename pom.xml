@@ -3,12 +3,12 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.flightgear</groupId>
 	<artifactId>terramaster</artifactId>
-	<version>1.15</version>
+	<version>1.16-SNAPSHOT</version>
 	<scm>
 		<url>https://github.com/Portree-Kid/terramaster.git</url>
 		<connection>scm:git:git://github.com/Portree-Kid/terramaster.git</connection>
 		<developerConnection>scm:git:git@github.com:Portree-Kid/terramaster.git</developerConnection>
-		<tag>terramaster-1.15</tag>
+		<tag>terramaster-1.14</tag>
 	</scm>
 	<distributionManagement>
 		<repository>
