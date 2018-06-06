@@ -21,6 +21,7 @@ pipeline {
                           withMaven(maven: 'Maven 3.5.3') {
                                 bat "mvn release:prepare -Dresume=false"
                           }
+                          def releaseProps = readProperties file: 'release.properties'
                       } catch (error) {
                           withMaven(maven: 'Maven 3.5.3') {
                                 bat "mvn release:rollback"
@@ -57,7 +58,10 @@ pipeline {
             echo env.BRANCH_NAME
             if (env.BRANCH_NAME == 'master') {
                 def props = readProperties file: 'target/maven-archiver/pom.properties'
-                def message = props['version'] 
+                def releaseProps = readProperties file: 'release.properties'
+                def version = props['version'] 
+                def tag = releaseProps[ 'scm.tag' ]
+                echo "Releasing ${version} Tag : ${tag}"
 
                 withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
                   withMaven(maven: 'Maven 3.5.3') {
@@ -66,7 +70,7 @@ pipeline {
                 }  
                   //Pipe through tee to get rid of errorlevel
                 withEnv(["SID=${env.sid}"]) {
-                    result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${message} 2>&1 | tee").trim()
+                    result = bat(returnStdout:true,  script: "C:\\Users\\keith.paterson\\go\\bin\\github-release info -s %SID% -u Portree-Kid -r terramaster -t ${tag} 2>&1 | tee").trim()
                 }
                 if( result.trim().indexOf("could not find the release corresponding") < 0 ) {
                     withEnv(["SID=${env.sid}"]) {
@@ -74,7 +78,7 @@ pipeline {
                     }
                 }                            
                 withEnv(["SID=${env.sid}"]) {
-                    bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${message} -n terramaster.jar -f ${files}"""
+                    bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${tag} -n ${version} -n terramaster.jar -f ${files}"""
                 }
             }
             archiveArtifacts '*terramaster*.jar'
