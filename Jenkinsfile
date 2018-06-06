@@ -78,7 +78,7 @@ pipeline {
                     }
                 }                            
                 withEnv(["SID=${env.sid}"]) {
-                    bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${tag} -n ${version} -n terramaster.jar -f ${files}"""
+                    bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${tag} -l ${version} -n ${tag}.jar -f target/${tag}.jar"""
                 }
             }
             archiveArtifacts '*terramaster*.jar'
