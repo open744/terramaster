@@ -17,9 +17,15 @@ pipeline {
                   }
                   if( props.size() == 0 || result.trim().indexOf("could not find the release corresponding") > 0 ) {
                     withEnv(["JAVA_HOME=${ tool 'jdk1.8.0_121' }"]) {
-                      withMaven(maven: 'Maven 3.5.3') {
-                            bat "mvn release:prepare -Dresume=false"
-                      }                   
+                      try {
+                          withMaven(maven: 'Maven 3.5.3') {
+                                bat "mvn release:prepare -Dresume=false"
+                          }
+                      } catch (error) {
+                          withMaven(maven: 'Maven 3.5.3') {
+                                bat "mvn release:rollback"
+                          }
+                      }
                     }  
                   }            
                 }              
