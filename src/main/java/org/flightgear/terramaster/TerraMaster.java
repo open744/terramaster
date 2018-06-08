@@ -118,7 +118,7 @@ public class TerraMaster {
 
   void createAndShowGUI() {
     // find our jar
-    java.net.URL url = getClass().getClassLoader().getResource("gshhs_l.b");
+    java.net.URL url = getClass().getClassLoader().getResource("maps/gshhs_l.b");
     log.fine("getResource: " + url);
     if( url == null )
     {
