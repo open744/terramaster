@@ -75,7 +75,7 @@ pipeline {
                     if( result.trim().indexOf("could not find the release corresponding") > 0 ) {
                       bat "C:\\Users\\keith.paterson\\go\\bin\\github-release release -s %SID% -u Portree-Kid -r terramaster -t ${tag}"
                     }                            
-                    bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${tag} -l ${version} -n ${tag}.jar -f target/${tag}.jar"""
+                    bat """C:\\Users\\keith.paterson\\go\\bin\\github-release upload -s %SID% -u Portree-Kid -r terramaster -t ${tag} -l ${tag}.jar -n ${tag}.jar -f target/${tag}.jar"""
                 }
             }
             archiveArtifacts '*terramaster*.jar'
