@@ -65,6 +65,12 @@
 					<include>**/*.jar</include>
 				</includes>
 			</resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+            </resource>
 		</resources>
 	</build>
 
