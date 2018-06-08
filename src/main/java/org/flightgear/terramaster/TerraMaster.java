@@ -120,6 +120,11 @@ public class TerraMaster {
     // find our jar
     java.net.URL url = getClass().getClassLoader().getResource("gshhs_l.b");
     log.fine("getResource: " + url);
+    if( url == null )
+    {
+      JOptionPane.showMessageDialog(null, "Couldn't load resources", "ERROR", JOptionPane.ERROR_MESSAGE);
+      return;
+    }
 
     String path = props.getProperty(TerraMasterProperties.SCENERY_PATH);
     if (path != null) {
