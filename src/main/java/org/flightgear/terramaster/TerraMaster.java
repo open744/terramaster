@@ -53,7 +53,7 @@ public class TerraMaster {
   /** The service getting the tiles */
   public static TileService svn;
   public static FGMap fgmap;
-  public static Properties props;
+  public static Properties props = new Properties();
 
   public static void addScnMapTile(Map<TileName, TileData> map, File i, TerraSyncDirectoryTypes type) {
     TileName n = TileName.getTile(i.getName());
@@ -115,13 +115,11 @@ public class TerraMaster {
     return map;
   }
 
-
   void createAndShowGUI() {
     // find our jar
     java.net.URL url = getClass().getClassLoader().getResource("maps/gshhs_l.b");
     log.fine("getResource: " + url);
-    if( url == null )
-    {
+    if (url == null) {
       JOptionPane.showMessageDialog(null, "Couldn't load resources", "ERROR", JOptionPane.ERROR_MESSAGE);
       return;
     }
@@ -158,7 +156,8 @@ public class TerraMaster {
           props.store(new FileWriter("terramaster.properties"), null);
         } catch (Exception x) {
           log.log(Level.WARNING, "Couldn't store settings", e);
-          JOptionPane.showMessageDialog(frame, "Couldn't store Properties " + x.toString(), "Error", JOptionPane.ERROR_MESSAGE );
+          JOptionPane.showMessageDialog(frame, "Couldn't store Properties " + x.toString(), "Error",
+              JOptionPane.ERROR_MESSAGE);
         }
         log.info("Shut down Terramaster");
       }
@@ -166,7 +165,6 @@ public class TerraMaster {
   }
 
   public static void main(String args[]) {
-    Properties p = new Properties();
     try {
       InputStream resourceAsStream = TerraMaster.class.getClassLoader()
           .getResourceAsStream("terramaster.logging.properties");
@@ -182,35 +180,30 @@ public class TerraMaster {
     }
     Logger LOG = Logger.getLogger(TerraMaster.class.getCanonicalName());
     try {
-      InputStream resourceAsStream = TerraMaster.class.getResourceAsStream("/build_info.properties");
-      if (resourceAsStream != null)
-        p.load(resourceAsStream);
-    } catch (Exception e1) {
-      e1.printStackTrace();
+      loadVersion();
+    } catch (IOException e) {
+      LOG.log(Level.WARNING, "Couldn't load properties : " + e.toString(), e);
     }
     readMetaINF();
     // Logger.getGlobal().setLevel(Level.ALL);
 
     fgmap = new FGMap(); // handles webqueries
 
-    props = new Properties();
     try {
       props.load(new FileReader("terramaster.properties"));
       if (props.getProperty("LogLevel") != null) {
         Logger.getGlobal().getParent().setLevel(Level.INFO);
         Logger.getLogger(TerraMaster.LOGGER_CATEGORY).setLevel(Level.parse(props.getProperty("LogLevel")));
         Logger.getGlobal().getParent().setLevel(Level.INFO);
-      }
-      else {
+      } else {
         Logger.getGlobal().getParent().setLevel(Level.INFO);
         Logger.getLogger(TerraMaster.LOGGER_CATEGORY).setLevel(Level.INFO);
-        Logger.getGlobal().getParent().setLevel(Level.INFO);        
+        Logger.getGlobal().getParent().setLevel(Level.INFO);
       }
     } catch (IOException e) {
       LOG.log(Level.WARNING, "Couldn't load properties : " + e.toString(), e);
     }
-    LOG.info("Starting TerraMaster " + p.getProperty("build.major.number") + "." + p.getProperty("build.minor.number")
-        + "_" + p.getProperty("build.number") + " " + p.getProperty("build.time"));
+    LOG.info("Starting TerraMaster " + props.getProperty("version"));
 
     setTileService();
 
@@ -268,6 +261,13 @@ public class TerraMaster {
       svn.start();
     }
     svn.restoreSettings();
+  }
+
+  private static void loadVersion() throws IOException {
+    try (InputStream is = TerraMaster.class
+        .getResourceAsStream("/META-INF/maven/org.flightgear/terramaster/pom.properties")) {
+      props.load(is);
+    }
   }
 
 }
